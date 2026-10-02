@@ -154,6 +154,11 @@ def cmd_check_data(args, cfg) -> int:
         print(f"  [{'x' if status.startswith('ok') else ' '}] {name}\n        {status}")
         ok += status.startswith("ok")
     print(f"\n{ok}/{len(labels)} labelled videos ready.")
+    if ok < len(labels):
+        print("\nThe dataset videos are NOT stored in Git (large, copyrighted). Get them from the project owner,\n"
+              f"copy them into {vids} with exactly the names above, then re-run:\n"
+              "  python -m sceneseen check-data --verify\n"
+              "See data/README.md. (To analyse NEW videos you don't need this: upload them in the web app.)")
     return 0 if ok == len(labels) else 1
 
 
