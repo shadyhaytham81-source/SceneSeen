@@ -54,3 +54,8 @@ reports/errors/*.png
 
 # ---------- per-dataset tuning output (regenerate with `python -m sceneseen tune`)
 config/tuned.toml
+
+# ---------- logs / temp
+*.log
+*.tmp
+*.tmp.*

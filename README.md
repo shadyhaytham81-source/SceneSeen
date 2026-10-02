@@ -26,82 +26,119 @@ CLIP model ≈ 0.6 GB, plus cache). Internet access is needed once, for `pip ins
 ### macOS
 
 ```bash
-# 1. Python 3.11 (skip if `python3.11 --version` works)
+# 0. One-time: Python 3.11 (skip if `python3.11 --version` already works)
 brew install python@3.11
 
-# 2. Clone
-git clone <REPO_URL> sceneseen
-cd sceneseen
-
-# 3. Virtual environment + dependencies
+# 1. Clone
+git clone https://github.com/shadyhaytham81-source/SceneSeen.git
+# 2. Go into the project
+cd SceneSeen
+# 3. Create a virtual environment
 python3.11 -m venv .venv
+# 4. Activate it (do this in every new terminal)
 source .venv/bin/activate
+# 5. Install dependencies (~1.5 GB, includes PyTorch and a bundled FFmpeg)
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-
-# 4. Tests (fast unit tests, ~3 s)
+# 6. FFmpeg / models: nothing to do. FFmpeg is bundled; the CLIP model downloads itself on first analysis.
+# 7. Run the tests (fast suite, a few seconds)
 python -m pytest
-
-# 5. Start SceneSeen -> open http://127.0.0.1:8000
+# 8. Start SceneSeen
 python -m sceneseen serve
+# 9. Open http://127.0.0.1:8000 in your browser (Ctrl+C in the terminal stops the server)
 ```
 
 ### Windows 10/11 (PowerShell)
 
 ```powershell
-# 1. Python 3.11 from https://www.python.org/downloads/ (tick "Add python.exe to PATH"), then check:
+# 0. One-time: install Python 3.11 from https://www.python.org/downloads/ (tick "Add python.exe to PATH")
+#    and Git from https://git-scm.com/download/win, then check:
 py -3.11 --version
 
-# 2. Clone
-git clone <REPO_URL> sceneseen
-cd sceneseen
-
-# 3. Virtual environment + dependencies
+# 1. Clone
+git clone https://github.com/shadyhaytham81-source/SceneSeen.git
+# 2. Go into the project
+cd SceneSeen
+# 3. Create a virtual environment
 py -3.11 -m venv .venv
-# If activation is blocked: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+# 4. Activate it (do this in every new terminal). If PowerShell blocks scripts, run once:
+#    Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 .\.venv\Scripts\Activate.ps1
+# 5. Install dependencies
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-
-# 4. Tests
+# 6. FFmpeg / models: nothing to do (bundled FFmpeg; CLIP downloads itself on first analysis)
+# 7. Run the tests
 python -m pytest
-
-# 5. Start SceneSeen -> open http://127.0.0.1:8000
+# 8. Start SceneSeen
 python -m sceneseen serve
+# 9. Open http://127.0.0.1:8000 in your browser
 ```
 
 (Command Prompt instead of PowerShell: activate with `.venv\Scripts\activate.bat`.)
 
-### Dataset (videos are NOT in Git)
+The first video you analyse downloads the CLIP model (~600 MB, once). Shot detection takes about 1–2 minutes per
+10 minutes of video on a laptop CPU. Results are cached, so re-opening a video is instant.
 
-The ground-truth labels are in `ground_truth/`. The matching videos must be copied separately into
-**`data/videos/`**, each with exactly the file name given in its label's `"video"` field. See
-[data/README.md](data/README.md). Then:
+## Videos are NOT stored in GitHub
+
+Videos are large and copyrighted. Git only contains code, docs, labels and evaluation results. There are two ways
+videos enter SceneSeen:
+
+**1. New videos: just upload them in the website.** Open http://127.0.0.1:8000 and drag the file in (or **Choose
+Video**). The app keeps its own copy in `data/uploads/`. You do **not** need to put anything in `data/videos/`
+yourself. When you save a ground-truth label, SceneSeen copies the video into `data/videos/` automatically.
+
+**2. The existing labelled dataset (6 videos), to reproduce the evaluation.** Get the files from the project owner
+(shared separately), copy them into **`data/videos/`** with their exact file names, then verify:
 
 ```bash
-python -m sceneseen check-data --verify # every label should show [x] ok, sha256 match
-python -m sceneseen evaluate --split dev # reproduces docs/RESULTS.md (SceneSeen F1@2s = 0.677)
+python -m sceneseen check-data --verify   # each label must show [x] ok, sha256 match
+python -m sceneseen evaluate --split dev  # reproduces docs/RESULTS.md (SceneSeen F1@±2s = 0.677)
 ```
+
+`check-data` compares each file with `ground_truth/videos_manifest.json` (exact size and SHA-256), so you know
+you have the identical files. Without the videos it lists them as `MISSING` and exits; nothing hangs. Details:
+[data/README.md](data/README.md).
+
+## Labelling a video (creating ground truth)
+
+1. **Upload** the video on the home page and click **Analyze Video**.
+2. Tick **Developer** (top right).
+3. Turn on **Edit scenes**, then click **Start blank**. This removes SceneSeen's prediction, so it can't
+   influence you.
+4. **Watch the entire video.** Each time a new scene really starts, pause and click **Split at playhead**. It
+   snaps to the real cut just before where you paused.
+5. **Review** the scene cards and timeline. Fix mistakes with **Merge with next** or another split.
+6. Click **Mark as reviewed**.
+7. Click **Save as ground truth** and enter your name as annotator. This writes `ground_truth/<video>.json` and
+   copies the video to `data/videos/`.
+8. Commit the new label (`git add ground_truth/ && git commit`). **Never commit the video.**
+
+> **Rule: a camera cut or a different camera angle does NOT automatically mean a new scene.** A conversation
+> filmed as close-up A → close-up B → wide shot is **one** scene. Start a new scene only when the **location**,
+> the **time** (next day, flashback), or the story's **situation** changes. Full rules and edge cases:
+> [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ### Optional: end-to-end tests on real video
 
 Uses the open movie *Tears of Steel* (Blender Foundation, CC-BY, 372 MB):
 
 ```bash
+mkdir -p data/videos
 curl -L -o data/videos/tears_of_steel_720p.mov https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov
 python scripts/make_synthetic.py
 python -m pytest -m slow
 ```
 
-On Windows PowerShell use `curl.exe` (not `curl`), and create the folder first with `mkdir data\videos`.
+On Windows PowerShell use `curl.exe` (not `curl`) and `mkdir data\videos`.
 
 ## Using SceneSeen
 
-**Web app** (`python -m sceneseen serve`): drop a video, click **Analyze Video**, then preview scenes and export
-**Scene Data** (JSON) or **Scene Clips** (zip of `scene_001.mp4`, …). Tick **Developer** (top right) to see shots,
-cut scores, grouping decisions, thresholds, representative frames and timings, and to re-run grouping with new
-parameters instantly. **Edit scenes** lets you merge and split scenes. In developer mode you can save the result
-as a ground-truth label (see docs/EVALUATION.md, "Start blank" for unbiased labels).
+**Web app:** after analysis you get scene cards and a timeline. **Preview** plays one scene. **Export Scene
+Data** downloads JSON, and **Export Scene Clips** downloads a zip of `scene_001.mp4`, …. **Developer** mode shows
+shots, cut scores, grouping decisions, thresholds, representative frames and timings, and can re-run grouping
+with new parameters instantly (preview only).
 
 **Command line**
 
@@ -109,7 +146,7 @@ as a ground-truth label (see docs/EVALUATION.md, "Start blank" for unbiased labe
 python -m sceneseen analyze path/to/video.mp4            # prints scenes, writes data/exports/<name>/scenes.json
 python -m sceneseen analyze path/to/video.mp4 --clips    # + one frame-accurate clip per scene
 python -m sceneseen analyze path/to/video.mp4 --debug    # + debug.json (shots, scores, decisions)
-python -m sceneseen check-data                           # are all labelled videos in data/videos/?
+python -m sceneseen check-data [--verify]                # are all labelled videos in data/videos/ (and identical)?
 python -m sceneseen evaluate --split dev                 # score against human labels + baselines
 python -m sceneseen tune                                 # tune thresholds on dev only (with leave-one-out check)
 python scripts/error_analysis.py                         # diagnose every false/missed boundary
@@ -154,7 +191,7 @@ thresholds takes milliseconds.
 
 ## Status
 
-Phase 1 is built, tested (41 tests) and evaluated on 6 labelled videos: **F1@2s 0.68**, vs 0.14 for "every cut is
+Phase 1 is built, tested (automated test suite: `python -m pytest`) and evaluated on 6 labelled videos: **F1@2s 0.68**, vs 0.14 for "every cut is
 a scene" and 0.32 for adjacent-shot similarity. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and
 [docs/RESULTS.md](docs/RESULTS.md). **Phase 2 has not started and must not start yet.**
 
