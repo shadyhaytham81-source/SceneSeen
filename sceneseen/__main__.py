@@ -111,30 +111,48 @@ def cmd_tune(args, cfg) -> int:
 
 
 def cmd_check_data(args, cfg) -> int:
-    """List every ground-truth label and whether its video is present and readable."""
+    """List every ground-truth label and whether its video is present, readable and identical
+    to the labelled file (size always; SHA-256 with --verify)."""
+    import hashlib
     import json as _json
 
-    from .ground_truth import find_video, load_label
+    from .ground_truth import find_video, label_files, load_label, nfc
     from .media import VideoError, is_dataless, probe
 
     gt, vids = cfg.paths.ground_truth_dir, cfg.paths.videos_dir
-    labels = sorted(p for p in gt.glob("*.json") if p.name != "splits.json")
+    mpath = gt / "videos_manifest.json"
+    manifest = {nfc(v["video"]): v for v in _json.loads(mpath.read_text(encoding="utf-8"))["videos"]} \
+        if mpath.exists() else {}
+    labels = label_files(gt)
     print(f"labels: {gt}\nvideos: {vids}\n")
     ok = 0
     for lp in labels:
         name = _json.loads(lp.read_text(encoding="utf-8")).get("video", "?")
         vp = find_video(vids, name)
+        expect = manifest.get(nfc(name))
         status = "MISSING"
         if vp.exists() and is_dataless(vp):
             status = "cloud-only placeholder (download it first)"
         elif vp.exists():
             try:
                 info = probe(vp)
-                load_label(lp, info.duration)
-                status, ok = f"ok ({info.duration / 60:.1f} min, {len(_json.loads(lp.read_text(encoding='utf-8'))['boundaries'])} boundaries)", ok + 1
+                n = len(load_label(lp, info.duration)["boundaries"])
+                status = f"ok ({info.duration / 60:.1f} min, {n} boundaries)"
+                if expect and vp.stat().st_size != expect["bytes"]:
+                    status = (f"DIFFERENT FILE: {vp.stat().st_size} bytes, expected {expect['bytes']} "
+                              f"(another download/quality shifts timestamps)")
+                elif expect and args.verify:
+                    h = hashlib.sha256()
+                    with open(vp, "rb") as f:
+                        for chunk in iter(lambda: f.read(8 << 20), b""):
+                            h.update(chunk)
+                    status += ", sha256 match" if h.hexdigest() == expect["sha256"] else ""
+                    if h.hexdigest() != expect["sha256"]:
+                        status = "DIFFERENT FILE: sha256 mismatch"
             except (VideoError, ValueError) as e:
                 status = f"ERROR: {e}"
         print(f"  [{'x' if status.startswith('ok') else ' '}] {name}\n        {status}")
+        ok += status.startswith("ok")
     print(f"\n{ok}/{len(labels)} labelled videos ready.")
     return 0 if ok == len(labels) else 1
 
@@ -165,7 +183,8 @@ def main(argv=None) -> int:
     e.add_argument("--split", choices=["dev", "test", "all"], default="dev")
     t = sub.add_parser("tune", help="grid-search grouping thresholds on the dev split")
     t.add_argument("--out", default=str(ROOT / "config" / "tuned.toml"), help="where to write the tuned [grouping]")
-    sub.add_parser("check-data", help="check that every ground-truth label has its video in data/videos/")
+    c = sub.add_parser("check-data", help="check that every ground-truth label has its video in data/videos/")
+    c.add_argument("--verify", action="store_true", help="also compare SHA-256 with ground_truth/videos_manifest.json")
     s = sub.add_parser("serve", help="run the web app")
     s.add_argument("--host", default="127.0.0.1")
     s.add_argument("--port", type=int, default=8000)

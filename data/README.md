@@ -18,10 +18,13 @@ Each file in `ground_truth/*.json` names its video in the `"video"` field. Copy 
 `data/videos/` with **exactly that file name**, including odd ones like `video_01.mp4.mp4`. Arabic and emoji names
 are fine: matching ignores Unicode normalisation differences between macOS, Windows and Linux.
 
-Check that everything is in place:
+`ground_truth/videos_manifest.json` lists the exact size and SHA-256 of every labelled video. A different
+download (another quality or re-encode) can shift timestamps, so results would no longer be comparable. Check that
+everything is in place:
 
 ```bash
-python -m sceneseen check-data
+python -m sceneseen check-data            # presence, readability, size
+python -m sceneseen check-data --verify   # + SHA-256 (reads every file, ~10 s per GB)
 ```
 
 Every line should show `[x] … ok`. Then reproduce the evaluation:

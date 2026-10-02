@@ -79,7 +79,7 @@ The ground-truth labels are in `ground_truth/`. The matching videos must be copi
 [data/README.md](data/README.md). Then:
 
 ```bash
-python -m sceneseen check-data          # every label should show [x] ok
+python -m sceneseen check-data --verify # every label should show [x] ok, sha256 match
 python -m sceneseen evaluate --split dev # reproduces docs/RESULTS.md (SceneSeen F1@2s = 0.677)
 ```
 

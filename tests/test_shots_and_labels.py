@@ -139,3 +139,13 @@ def test_label_and_split_match_across_unicode_forms(tmp_path):
     sp = load_or_create_split(gt, [s for s, *_ in items])
     assert items[0][0] in sp["dev"]                       # recognised, not treated as a new video
     assert (gt / "splits.json").read_bytes() == before    # and the file was not rewritten
+
+
+def test_manifest_and_splits_are_not_labels(tmp_path):
+    gt, vids = tmp_path / "gt", tmp_path / "videos"
+    gt.mkdir(); vids.mkdir()
+    (vids / "a.mp4").write_bytes(b"x")
+    (gt / "a.json").write_text(json.dumps({"video": "a.mp4", "boundaries": [1.0]}), encoding="utf-8")
+    (gt / "videos_manifest.json").write_text(json.dumps({"videos": []}), encoding="utf-8")
+    (gt / "splits.json").write_text(json.dumps({"dev": ["a"], "test": []}), encoding="utf-8")
+    assert [s for s, *_ in labelled_videos(gt, vids)] == ["a"]

@@ -25,6 +25,11 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 VIDEO_EXTS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v"}
+NOT_LABELS = {"splits.json", "videos_manifest.json"}
+
+
+def label_files(gt_dir: Path) -> list[Path]:
+    return sorted(p for p in gt_dir.glob("*.json") if p.name not in NOT_LABELS)
 
 
 class LabelError(ValueError):
@@ -108,9 +113,7 @@ def labelled_videos(gt_dir: Path, videos_dir: Path, cache_dir: Path | None = Non
     from .media import is_dataless
 
     out = []
-    for lp in sorted(gt_dir.glob("*.json")):
-        if lp.name == "splits.json":
-            continue
+    for lp in label_files(gt_dir):
         name = json.loads(lp.read_text(encoding="utf-8")).get("video", "")
         vp = find_video(videos_dir, name)
         if vp.exists() and is_dataless(vp):

@@ -55,10 +55,12 @@ no paid APIs and no model training. Details: [docs/ARCHITECTURE.md](docs/ARCHITE
 ```
 ground_truth/<video name>.json   human labels (in Git)        {"video": ..., "boundaries": [seconds...], ...}
 ground_truth/splits.json         dev/test split (in Git)      all 6 current videos are dev
+ground_truth/videos_manifest.json exact name/size/SHA-256 of each labelled video (in Git)
 data/videos/<video name>         the videos (NOT in Git)      exact file name from each label's "video" field
 data/cache, uploads, exports     generated (NOT in Git)
 ```
-Collaborators: obtain the videos separately, copy them into `data/videos/`, run `python -m sceneseen check-data`.
+Collaborators: obtain the videos separately, copy them into `data/videos/`, run
+`python -m sceneseen check-data --verify`.
 See [data/README.md](data/README.md).
 
 ## What should happen next

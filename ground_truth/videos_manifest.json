@@ -1,0 +1,59 @@
+{
+  "note": "Videos are NOT in Git. Place each file in data/videos/ with exactly this name; sizes/hashes must match for results to be comparable.",
+  "videos": [
+    {
+      "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p).mp4",
+      "label": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p).json",
+      "bytes": 117539116,
+      "sha256": "24d70babc59a38e30345939a1e4f921ffebd9c6560705f124a81e8075b0f8285",
+      "duration_seconds": 587.81,
+      "resolution": "1920x1080",
+      "fps": 23.98
+    },
+    {
+      "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p).mp4",
+      "label": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p).json",
+      "bytes": 288427768,
+      "sha256": "cdec3759b423e59bd62b87a108b3c515835c6684aba4bd1dd061d235853f008a",
+      "duration_seconds": 1954.03,
+      "resolution": "1920x1080",
+      "fps": 25.0
+    },
+    {
+      "video": "video_01.mp4.mp4",
+      "label": "video_01.mp4.json",
+      "bytes": 157605608,
+      "sha256": "dd2135691c1297bfcd517a91eac6e9c05d4032f4f1ef688ea9b98bafbca2c3e8",
+      "duration_seconds": 1087.69,
+      "resolution": "1920x1080",
+      "fps": 23.98
+    },
+    {
+      "video": "video_02.mp4",
+      "label": "video_02.json",
+      "bytes": 169975816,
+      "sha256": "a16d78c3f2ec479f11741f34b09255da7f8604ed99b51823d772c74e56f5eeb4",
+      "duration_seconds": 652.25,
+      "resolution": "1920x1080",
+      "fps": 23.98
+    },
+    {
+      "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p).mp4",
+      "label": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p).json",
+      "bytes": 138950339,
+      "sha256": "199e3fc6e83af2c196054003a40c26557972f70e162f73eeb1e8171622da197c",
+      "duration_seconds": 513.09,
+      "resolution": "1920x1080",
+      "fps": 25.0
+    },
+    {
+      "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p).mp4",
+      "label": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p).json",
+      "bytes": 134288465,
+      "sha256": "1a62ca50568905613dab771c7e553e5e1c9afe91b5e12c46c218e1fc0c19fae4",
+      "duration_seconds": 512.21,
+      "resolution": "1920x1080",
+      "fps": 25.0
+    }
+  ]
+}
