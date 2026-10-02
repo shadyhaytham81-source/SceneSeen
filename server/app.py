@@ -233,8 +233,17 @@ def thumb(vid: str, feat_key: str, shot: int):
 @app.get("/api/videos/{vid}/export.json")
 def export_json(vid: str):
     pub = public_result(_current_result(vid))
-    name = Path(pub["video"]).stem
-    return JSONResponse(pub, headers={"Content-Disposition": f'attachment; filename="{name}_scenes.json"'})
+    return JSONResponse(pub, headers={"Content-Disposition": _attachment(f"{Path(pub['video']).stem}_scenes.json")})
+
+
+def _attachment(filename: str) -> str:
+    """Content-Disposition that survives Arabic/emoji names (HTTP headers must be latin-1):
+    ASCII fallback + RFC 5987 UTF-8 filename*."""
+    from urllib.parse import quote
+
+    ascii_name = filename.encode("ascii", "ignore").decode().strip() or "scenes.json"
+    ascii_name = ascii_name.replace('"', "")
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}"
 
 
 @app.post("/api/videos/{vid}/export-clips")

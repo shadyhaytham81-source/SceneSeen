@@ -19,7 +19,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from sceneseen.benchmark import load_dataset, predict  # noqa: E402
+from sceneseen.benchmark import load_dataset  # noqa: E402
 from sceneseen.config import load_config  # noqa: E402
 from sceneseen.evaluation import match_boundaries  # noqa: E402
 from sceneseen import grouping  # noqa: E402
