@@ -1,0 +1,56 @@
+# SceneSeen Phase 1 configuration.
+# Override any value with a second TOML file:  --config config/tuned.toml
+# Only [grouping] affects the fast re-grouping step; changing [shots] or
+# [features] invalidates the corresponding cache entries automatically.
+
+[paths]
+cache_dir = "data/cache"
+uploads_dir = "data/uploads"
+exports_dir = "data/exports"
+ground_truth_dir = "ground_truth"
+videos_dir = "data/videos"
+
+[shots]
+# "transnetv2" (neural, also catches dissolves/fades) or "pyscenedetect" (fast, hard cuts)
+detector = "transnetv2"
+transnet_threshold = 0.5
+transnet_device = "cpu"          # MPS is numerically inconsistent for TransNetV2
+pyscenedetect_threshold = 3.0    # AdaptiveDetector adaptive_threshold
+min_shot_seconds = 0.4           # shorter "shots" (flashes, mis-detections) are merged into a neighbour
+
+[features]
+model = "ViT-B-32"
+pretrained = "laion2b_s34b_b79k"
+device = "auto"                  # auto -> mps / cuda / cpu
+batch_size = 64
+frame_positions = [0.15, 0.5, 0.85]   # relative positions inside each shot
+frame_short_side = 224
+color_bins = [8, 4, 4]           # HSV histogram bins
+
+[grouping]
+# Shot-to-shot similarity = weighted blend of semantic (CLIP) and colour similarity.
+clip_weight = 0.75
+color_weight = 0.25
+# CLIP cosine similarities live in roughly [clip_floor, 1]; rescale to [0, 1].
+clip_floor = 0.5
+# Context window around each cut (shots are only linked if within both limits).
+window_shots = 6
+window_seconds = 45.0
+# Penalty per intermediate shot when linking far-apart shots (A ... A).
+distance_penalty = 0.01
+# Coherence across a cut = mean of the top-k cross-cut similarities.
+coherence_topk = 2
+# A cut becomes a scene boundary only if its score passes BOTH tests:
+abs_threshold = 0.45             # boundary score = 1 - coherence
+depth_threshold = 0.35           # TextTiling depth: how clearly the cut is a local peak
+strong_threshold = 0.75          # scores above this skip the depth test
+# "climb": TextTiling downhill depth; "window": prominence vs. lowest cut within window_shots/2 cuts
+depth_mode = "climb"
+min_scene_seconds = 6.0
+
+[export]
+# "reencode": frame-accurate (libx264), verified against source frames. Default.
+# "copy": lossless stream copy, near-instant, but only keyframe-accurate (edges can be off by a few frames)
+clip_mode = "reencode"
+crf = 18
+preset = "veryfast"

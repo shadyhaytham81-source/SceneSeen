@@ -1,0 +1,17 @@
+# SceneSeen Phase 1 — Python 3.11
+torch==2.14.1
+torchvision==0.29.1
+open_clip_torch==3.3.0
+transnetv2-pytorch==1.0.5
+scenedetect==0.7.1
+opencv-python-headless==5.0.0.93
+imageio-ffmpeg==0.6.0          # bundled static ffmpeg, no system install needed
+numpy==2.4.6
+scipy==1.17.1
+pillow==12.3.0
+fastapi==0.142.2
+uvicorn==0.54.0
+python-multipart==0.0.32
+pydantic==2.13.5
+pytest==9.1.1
+httpx==0.28.1

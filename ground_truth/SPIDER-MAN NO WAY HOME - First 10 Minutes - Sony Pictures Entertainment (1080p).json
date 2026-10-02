@@ -1,0 +1,16 @@
+{
+  "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p).mp4",
+  "boundaries": [
+    66.138,
+    193.703,
+    309.258,
+    334.612,
+    358.299,
+    408.59,
+    472.977,
+    482.068,
+    559.35
+  ],
+  "annotator": "Shady",
+  "notes": "labelled in SceneSeen UI"
+}

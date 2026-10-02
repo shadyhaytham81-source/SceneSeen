@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SceneSeen</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='8' width='8' height='16' rx='2' fill='%23f2b544'/><rect x='12' y='8' width='18' height='16' rx='2' fill='%23e8e4dc'/></svg>">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="wordmark" href="/" aria-label="SceneSeen home"><span class="mark"></span>SCENESEEN</a>
+    <label class="devtoggle" title="Show shots, scores and grouping decisions">
+      <input type="checkbox" id="devToggle"> <span>Developer</span>
+    </label>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section id="home" class="view">
+      <div class="hero">
+        <h1>Understand the structure<br>of any video.</h1>
+        <p class="sub">Drop in a film clip or an episode. SceneSeen finds where each scene begins and ends.</p>
+      </div>
+      <div id="drop" class="drop" tabindex="0" role="button" aria-label="Choose a video">
+        <input id="fileInput" type="file" accept="video/*,.mkv" hidden>
+        <div class="drop-inner">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4-2.5z" fill="currentColor"/></svg>
+          <p class="drop-title">Drag &amp; drop a video</p>
+          <p class="drop-or">or</p>
+          <button class="btn ghost" id="chooseBtn" type="button">Choose Video</button>
+          <p class="hint">MP4, MOV, MKV, WEBM · analysed locally on this machine</p>
+        </div>
+        <div class="file-picked" id="filePicked" hidden>
+          <div><strong id="fileName"></strong><span id="fileSize" class="muted"></span></div>
+          <button class="btn primary" id="analyzeBtn" type="button">Analyze Video</button>
+        </div>
+      </div>
+      <p class="error" id="homeError" hidden></p>
+      <div id="recent" class="recent" hidden>
+        <h3>Recent</h3>
+        <ul id="recentList"></ul>
+      </div>
+    </section>
+
+    <!-- PROCESSING -->
+    <section id="processing" class="view" hidden>
+      <div class="proc-card">
+        <p class="muted small" id="procName"></p>
+        <h2 id="procTitle">Analyzing video</h2>
+        <ol class="steps" id="steps">
+          <li data-stage="upload">Uploading video</li>
+          <li data-stage="reading">Reading video</li>
+          <li data-stage="shots">Detecting shots</li>
+          <li data-stage="scenes">Understanding scenes</li>
+          <li data-stage="results">Preparing results</li>
+        </ol>
+        <div class="bar"><div id="procBar"></div></div>
+        <p class="muted small" id="procHint">Large videos can take a minute or two.</p>
+        <p class="error" id="procError" hidden></p>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results" class="view" hidden>
+      <div class="res-head">
+        <div>
+          <p class="muted small" id="resVideo"></p>
+          <h2><span id="resCount"></span></h2>
+          <p class="muted small" id="resMeta"></p>
+        </div>
+        <div class="actions">
+          <button class="btn" id="exportJson" type="button">Export Scene Data</button>
+          <button class="btn primary" id="exportClips" type="button">Export Scene Clips</button>
+        </div>
+      </div>
+      <p class="notice" id="clipStatus" hidden></p>
+
+      <div class="player-wrap">
+        <video id="player" controls preload="metadata" playsinline></video>
+        <div class="now" id="nowPlaying" hidden></div>
+      </div>
+      <div class="timeline" id="timeline" aria-label="Scene timeline"><div class="playhead" id="playhead"></div></div>
+      <div class="tl-scale"><span>00:00</span><span id="tlEnd"></span></div>
+
+      <div class="edit-bar">
+        <label class="switch"><input type="checkbox" id="editToggle"> <span>Edit scenes</span></label>
+        <div id="editTools" class="edit-tools" hidden>
+          <button class="btn small" id="splitBtn" type="button" title="Start a new scene at the current playback position">Split at playhead</button>
+          <button class="btn small" id="confirmBtn" type="button">Mark as reviewed</button>
+          <button class="btn small ghost" id="resetBtn" type="button">Undo all edits</button>
+          <span class="dev-only"><button class="btn small ghost" id="clearBtn" type="button" title="Label from scratch: one scene, then split by hand">Start blank</button>
+          <button class="btn small" id="gtBtn" type="button">Save as ground truth</button></span>
+        </div>
+        <span class="muted small" id="editState"></span>
+      </div>
+
+      <div class="cards" id="cards"></div>
+
+      <!-- DEVELOPER -->
+      <section class="dev dev-only" id="devPanel">
+        <h3>Developer view</h3>
+        <div class="dev-grid">
+          <div class="panel">
+            <h4>Processing</h4>
+            <table class="kv" id="timings"></table>
+          </div>
+          <div class="panel">
+            <h4>Grouping parameters <span class="muted small">(re-runs instantly from cache)</span></h4>
+            <form id="params" class="params"></form>
+            <div class="row"><button class="btn small" id="applyParams" type="button">Re-run grouping</button>
+              <button class="btn small ghost" id="resetParams" type="button">Defaults</button>
+              <span class="muted small" id="paramState"></span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>Cut scores <span class="muted small">— one bar per shot cut; tall = visual/semantic change. Lines: thresholds.</span></h4>
+          <div id="chart" class="chart"></div>
+          <div class="legend"><span class="lg boundary"></span>scene boundary <span class="lg below_depth"></span>not a clear peak <span class="lg min_duration"></span>too close to another boundary <span class="lg below_abs"></span>same scene</div>
+        </div>
+        <div class="panel">
+          <h4>Shots <span class="muted small" id="shotSummary"></span></h4>
+          <div class="table-wrap"><table class="shots" id="shotTable"></table></div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

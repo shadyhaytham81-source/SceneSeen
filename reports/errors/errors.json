@@ -1,0 +1,448 @@
+{
+ "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)": {
+  "pred": [
+   66.138,
+   193.703,
+   301.168,
+   309.258,
+   334.612,
+   358.299,
+   408.59,
+   472.977,
+   482.068,
+   553.753,
+   562.052
+  ],
+  "gt": [
+   66.138,
+   193.703,
+   309.258,
+   334.612,
+   358.299,
+   408.59,
+   472.977,
+   482.068,
+   559.35
+  ],
+  "errors": [
+   {
+    "type": "FP",
+    "time": 301.17,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.5674,
+    "depth": 0.5344,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 2.5,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.944,
+    "strip": "SPIDER-MAN NO WAY HOME -_FP_00301.2.jpg"
+   },
+   {
+    "type": "FP",
+    "time": 553.75,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.4921,
+    "depth": 0.3927,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 5.5,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.847,
+    "strip": "SPIDER-MAN NO WAY HOME -_FP_00553.8.jpg"
+   },
+   {
+    "type": "FN",
+    "time": 559.35,
+    "nearest_cut_dist": 1.63,
+    "cut_score": 0.7063,
+    "depth": 0.237,
+    "decision": "below_depth",
+    "pace_cuts_per_10s": 4.5,
+    "transition": "no transition",
+    "frames_above_0.5": 0,
+    "peak_prob": 0.035,
+    "strip": "SPIDER-MAN NO WAY HOME -_FN_00559.4.jpg"
+   },
+   {
+    "type": "FP",
+    "time": 562.05,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.7431,
+    "depth": 0.6765,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 4.5,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.955,
+    "strip": "SPIDER-MAN NO WAY HOME -_FP_00562.1.jpg"
+   }
+  ]
+ },
+ "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)": {
+  "pred": [
+   107.64,
+   136.36,
+   156.72,
+   206.08,
+   290.52,
+   332.48,
+   481.88,
+   498.8,
+   551.0,
+   738.56,
+   798.8,
+   842.96,
+   857.28,
+   910.44,
+   925.56,
+   966.28,
+   1035.2,
+   1072.44,
+   1237.76,
+   1278.72,
+   1348.76,
+   1477.16,
+   1766.96,
+   1913.24
+  ],
+  "gt": [
+   136.36,
+   156.72,
+   290.52,
+   332.48,
+   481.88,
+   498.8,
+   551.0,
+   798.8,
+   842.96,
+   857.28,
+   910.44,
+   966.28,
+   1035.2,
+   1072.44,
+   1237.76,
+   1278.72,
+   1348.76,
+   1477.16,
+   1766.96,
+   1913.24
+  ],
+  "errors": [
+   {
+    "type": "FP",
+    "time": 107.64,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.7352,
+    "depth": 0.9098,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 0.5,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.986,
+    "strip": "Sabe3 Gar Episode 14 مسل_FP_00107.6.jpg"
+   },
+   {
+    "type": "FP",
+    "time": 206.08,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.5898,
+    "depth": 0.4706,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 1.0,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.969,
+    "strip": "Sabe3 Gar Episode 14 مسل_FP_00206.1.jpg"
+   },
+   {
+    "type": "FP",
+    "time": 738.56,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.5329,
+    "depth": 0.9256,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 0.5,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.98,
+    "strip": "Sabe3 Gar Episode 14 مسل_FP_00738.6.jpg"
+   },
+   {
+    "type": "FP",
+    "time": 925.56,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.6058,
+    "depth": 0.8314,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 1.5,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.959,
+    "strip": "Sabe3 Gar Episode 14 مسل_FP_00925.6.jpg"
+   }
+  ]
+ },
+ "video_01.mp4": {
+  "pred": [
+   158.841,
+   168.682,
+   279.358,
+   520.309,
+   530.692,
+   719.6
+  ],
+  "gt": [
+   158.841,
+   168.682,
+   279.358,
+   520.309,
+   530.692,
+   845.211
+  ],
+  "errors": [
+   {
+    "type": "FP",
+    "time": 719.6,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.5762,
+    "depth": 0.7001,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 2.0,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.934,
+    "strip": "video_01.mp4_FP_00719.6.jpg"
+   },
+   {
+    "type": "FN",
+    "time": 845.21,
+    "nearest_cut_dist": 1.01,
+    "cut_score": 0.2858,
+    "depth": 0.0848,
+    "decision": "below_abs",
+    "pace_cuts_per_10s": 3.0,
+    "transition": "no transition",
+    "frames_above_0.5": 0,
+    "peak_prob": 0.003,
+    "strip": "video_01.mp4_FN_00845.2.jpg"
+   }
+  ]
+ },
+ "video_02": {
+  "pred": [
+   635.571
+  ],
+  "gt": [
+   177.066,
+   364.701,
+   556.111
+  ],
+  "errors": [
+   {
+    "type": "FN",
+    "time": 177.07,
+    "nearest_cut_dist": 1.21,
+    "cut_score": 0.3134,
+    "depth": 0.1887,
+    "decision": "below_abs",
+    "pace_cuts_per_10s": 2.5,
+    "transition": "no transition",
+    "frames_above_0.5": 0,
+    "peak_prob": 0.04,
+    "strip": "video_02_FN_00177.1.jpg"
+   },
+   {
+    "type": "FN",
+    "time": 364.7,
+    "nearest_cut_dist": 10.86,
+    "cut_score": 0.4373,
+    "depth": 0.4145,
+    "decision": "below_abs",
+    "pace_cuts_per_10s": 0.0,
+    "transition": "no transition",
+    "frames_above_0.5": 0,
+    "peak_prob": 0.011,
+    "strip": "video_02_FN_00364.7.jpg"
+   },
+   {
+    "type": "FN",
+    "time": 556.11,
+    "nearest_cut_dist": 3.02,
+    "cut_score": 0.4236,
+    "depth": 0.433,
+    "decision": "below_abs",
+    "pace_cuts_per_10s": 2.0,
+    "transition": "no transition",
+    "frames_above_0.5": 0,
+    "peak_prob": 0.002,
+    "strip": "video_02_FN_00556.1.jpg"
+   },
+   {
+    "type": "FP",
+    "time": 635.57,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.4632,
+    "depth": 0.3924,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 1.0,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.865,
+    "strip": "video_02_FP_00635.6.jpg"
+   }
+  ]
+ },
+ "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)": {
+  "pred": [
+   195.72,
+   311.68,
+   418.24,
+   438.92,
+   450.32,
+   461.32,
+   480.52,
+   492.36
+  ],
+  "gt": [
+   195.72,
+   311.68,
+   418.24,
+   450.32,
+   461.32,
+   480.52,
+   492.36
+  ],
+  "errors": [
+   {
+    "type": "FP",
+    "time": 438.92,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.7293,
+    "depth": 1.0284,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 6.0,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.959,
+    "strip": "أنا بحب بيتكم وبحب اللم_FP_00438.9.jpg"
+   }
+  ]
+ },
+ "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)": {
+  "pred": [
+   22.96,
+   45.6,
+   170.72,
+   268.2,
+   371.16,
+   417.0,
+   434.32
+  ],
+  "gt": [
+   45.6,
+   92.72,
+   170.72,
+   200.4,
+   231.975,
+   268.2,
+   371.16,
+   399.52,
+   417.0,
+   471.36
+  ],
+  "errors": [
+   {
+    "type": "FP",
+    "time": 22.96,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.7958,
+    "depth": 0.0,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 0.5,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.985,
+    "strip": "🤣😁اشهر مشهد هيموتك من ال_FP_00023.0.jpg"
+   },
+   {
+    "type": "FN",
+    "time": 92.72,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.4734,
+    "depth": 0.2913,
+    "decision": "below_depth",
+    "pace_cuts_per_10s": 0.5,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.974,
+    "strip": "🤣😁اشهر مشهد هيموتك من ال_FN_00092.7.jpg"
+   },
+   {
+    "type": "FN",
+    "time": 200.4,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.3394,
+    "depth": 0.3594,
+    "decision": "below_abs",
+    "pace_cuts_per_10s": 2.5,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.991,
+    "strip": "🤣😁اشهر مشهد هيموتك من ال_FN_00200.4.jpg"
+   },
+   {
+    "type": "FN",
+    "time": 231.97,
+    "nearest_cut_dist": 1.17,
+    "cut_score": 0.4484,
+    "depth": 0.5358,
+    "decision": "below_abs",
+    "pace_cuts_per_10s": 2.0,
+    "transition": "no transition",
+    "frames_above_0.5": 0,
+    "peak_prob": 0.0,
+    "strip": "🤣😁اشهر مشهد هيموتك من ال_FN_00232.0.jpg"
+   },
+   {
+    "type": "FN",
+    "time": 399.52,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.7109,
+    "depth": 0.2184,
+    "decision": "below_depth",
+    "pace_cuts_per_10s": 0.5,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.99,
+    "strip": "🤣😁اشهر مشهد هيموتك من ال_FN_00399.5.jpg"
+   },
+   {
+    "type": "FP",
+    "time": 434.32,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.6082,
+    "depth": 0.4849,
+    "decision": "boundary",
+    "pace_cuts_per_10s": 2.0,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.912,
+    "strip": "🤣😁اشهر مشهد هيموتك من ال_FP_00434.3.jpg"
+   },
+   {
+    "type": "FN",
+    "time": 471.36,
+    "nearest_cut_dist": 0.0,
+    "cut_score": 0.7203,
+    "depth": 0.35,
+    "decision": "below_depth",
+    "pace_cuts_per_10s": 1.0,
+    "transition": "hard cut",
+    "frames_above_0.5": 1,
+    "peak_prob": 0.987,
+    "strip": "🤣😁اشهر مشهد هيموتك من ال_FN_00471.4.jpg"
+   }
+  ]
+ }
+}

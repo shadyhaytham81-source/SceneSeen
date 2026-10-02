@@ -1,0 +1,13 @@
+{
+  "dev": [
+    "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+    "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+    "video_01.mp4",
+    "video_02",
+    "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+    "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)"
+  ],
+  "test": [],
+  "seed": 13,
+  "note": "2026-10-02: all 6 first labels are dev. 4 were made by correcting SceneSeen predictions (anchoring bias), so none can serve as an unbiased final test set. Label a NEW set from blank for test."
+}

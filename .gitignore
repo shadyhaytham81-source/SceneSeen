@@ -1,0 +1,56 @@
+# ---------- Python / tooling
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.ipynb_checkpoints/
+
+# ---------- OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+.claude/
+
+# ---------- secrets (none are used today; keep it that way)
+.env
+.env.*
+*.pem
+*.key
+
+# ---------- data: raw videos, uploads, caches, exported clips (large and/or copyrighted)
+# Only data/README.md (dataset layout instructions) is tracked.
+data/*
+!data/README.md
+
+# ---------- generated reports
+# Evaluation tables/JSON are small and part of the project record -> tracked.
+# Error strips are frames from copyrighted films -> never committed.
+reports/errors/*.jpg
+reports/errors/*.png
+
+# ---------- media anywhere in the tree, as a safety net
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
+*.m4v
+*.zip
+
+# ---------- model weights / large binaries (CLIP downloads to ~/.cache, TransNetV2 ships in its pip package)
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.onnx
+*.npz
+
+# ---------- per-dataset tuning output (regenerate with `python -m sceneseen tune`)
+config/tuned.toml

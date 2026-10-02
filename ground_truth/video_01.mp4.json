@@ -1,0 +1,13 @@
+{
+  "video": "video_01.mp4.mp4",
+  "boundaries": [
+    158.841,
+    168.682,
+    279.358,
+    520.309,
+    530.692,
+    845.211
+  ],
+  "annotator": "Shady",
+  "notes": "labelled in SceneSeen UI"
+}

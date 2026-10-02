@@ -1,0 +1,6 @@
+# Machinery check ONLY: runs evaluate/tune against synthetic concatenations of
+# Tears of Steel (scripts/make_synthetic.py --set 4). The numbers say the code works,
+# not how well SceneSeen segments real films.
+[paths]
+ground_truth_dir = "data/synthetic/labels"
+videos_dir = "data/synthetic"

@@ -1,0 +1,10 @@
+{
+  "video": "video_02.mp4",
+  "boundaries": [
+    177.066,
+    364.701,
+    556.111
+  ],
+  "annotator": "The Pursuit Of Happiness",
+  "notes": "labelled in SceneSeen UI"
+}
