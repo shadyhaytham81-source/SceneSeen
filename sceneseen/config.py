@@ -58,6 +58,31 @@ class GroupingConfig:
 
 
 @dataclass(frozen=True)
+class UniqueShotsConfig:
+    """Repeated-shot grouping (post-processing; no effect on scene segmentation).
+    Weights/thresholds were calibrated on labelled shot pairs: see docs/UNIQUE_SHOTS.md."""
+    w_clip: float = 2.776
+    w_color: float = 3.540
+    w_phash: float = 4.089
+    bias: float = -7.886
+    duplicate_threshold: float = 0.60
+    different_threshold: float = 0.35
+    phash_neutral: float = 0.60
+    linkage: str = "average"
+    rep_w_centrality: float = 0.35
+    rep_w_sharpness: float = 0.25
+    rep_w_duration: float = 0.20
+    rep_w_stability: float = 0.10
+    rep_w_exposure: float = 0.10
+
+
+@dataclass(frozen=True)
+class BoundaryModelConfig:
+    """Optional learned scene-boundary classifier. Empty path = hand-designed rule (default)."""
+    path: str = ""
+
+
+@dataclass(frozen=True)
 class ExportConfig:
     clip_mode: str = "reencode"
     crf: int = 18
@@ -80,6 +105,8 @@ class Config:
     grouping: GroupingConfig
     export: ExportConfig
     paths: Paths
+    unique_shots: UniqueShotsConfig = UniqueShotsConfig()
+    boundary_model: BoundaryModelConfig = BoundaryModelConfig()
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -118,6 +145,8 @@ def load_config(*override_files: str | Path | None) -> Config:
         grouping=_build(GroupingConfig, raw.get("grouping", {})),
         export=_build(ExportConfig, raw.get("export", {})),
         paths=Paths(**paths),
+        unique_shots=_build(UniqueShotsConfig, raw.get("unique_shots", {})),
+        boundary_model=_build(BoundaryModelConfig, raw.get("boundary_model", {})),
     )
 
 

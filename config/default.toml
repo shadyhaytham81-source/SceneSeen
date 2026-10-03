@@ -54,3 +54,26 @@ min_scene_seconds = 6.0
 clip_mode = "reencode"
 crf = 18
 preset = "veryfast"
+
+[unique_shots]
+# Repeated-shot grouping inside each scene. Pure post-processing: scene segmentation is unaffected.
+# p(duplicate) = sigmoid(w_clip*clip_matched + w_color*color + w_phash*phash + bias)
+# Calibrated on 177 labelled shot pairs (leave-one-video-out AUC 0.985): docs/UNIQUE_SHOTS.md
+w_clip = 2.776
+w_color = 3.540
+w_phash = 4.089
+bias = -7.886
+duplicate_threshold = 0.60       # held-out precision 0.97, recall 0.91
+different_threshold = 0.35       # below this: different shot; in between: "uncertain" (reported, never merged)
+phash_neutral = 0.60             # layout value used when a thumbnail is missing
+linkage = "average"
+# representative shot = weighted ranks inside the group
+rep_w_centrality = 0.35
+rep_w_sharpness = 0.25
+rep_w_duration = 0.20
+rep_w_stability = 0.10
+rep_w_exposure = 0.10
+
+[boundary_model]
+# Optional learned scene-boundary classifier (python -m sceneseen train). Empty = hand-designed rule.
+path = ""

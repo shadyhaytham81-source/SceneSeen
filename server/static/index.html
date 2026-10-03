@@ -97,6 +97,22 @@
 
       <div class="cards" id="cards"></div>
 
+      <!-- UNIQUE SHOTS -->
+      <section class="uniq" id="uniqPanel" hidden>
+        <div class="uniq-head">
+          <div>
+            <h3>Unique Shots</h3>
+            <p class="muted small" id="uniqSummary"></p>
+          </div>
+          <div class="seg-toggle" role="tablist" aria-label="Shot view">
+            <button type="button" class="on" id="uniqModeUnique" role="tab">Unique Shots</button>
+            <button type="button" id="uniqModeAll" role="tab">All Shots</button>
+          </div>
+        </div>
+        <p class="muted small">Repeated camera set-ups inside a scene are grouped under one representative shot. Nothing is removed: click a unique shot to see every original occurrence.</p>
+        <div id="uniqScenes"></div>
+      </section>
+
       <!-- DEVELOPER -->
       <section class="dev dev-only" id="devPanel">
         <h3>Developer view</h3>

@@ -90,3 +90,95 @@ after all code changes reproduces F1@2s **0.677** exactly. No tuned number is re
 * With 6 videos (2 unbiased), threshold changes can't be validated: every tuned variant overfit. The
   remaining errors are mostly **semantic** (same apartment, different room; cutaways), and thresholds cannot fix
   those without breaking other videos.
+
+
+---
+
+## Evaluation 2 — 2026-10-03 — Unique Shots + learning from ground truth
+
+### Data
+Three new labels were added and assigned to a new held-out **validation** role (never trained or tuned on):
+
+| video | length | shots | true scenes | how labelled |
+|---|---|---|---|---|
+| Kamel El Adad +1 (first match) | 2:56 | 52 | 3 | **from blank** |
+| Nelly & Sherihan (car) | 10:19 | 112 | 6 | edited model predictions (3 merges) |
+| Nelly & Sherihan (stolen car) | 12:02 | 117 | 4 | edited model predictions (3 merges) |
+
+The 6 videos of Evaluation 1 remain **dev**. There is still no final-test set. Provenance of all 9 labels:
+`ground_truth/provenance.json` (3 from blank, 6 edited).
+
+### BASELINE (before any change in this round; default config)
+
+| split | F1@1s | F1@2s | F1@3s | P@2s | R@2s | coverage | overflow | pred/true scenes |
+|---|---|---|---|---|---|---|---|---|
+| dev (6) | 0.677 | 0.677 | 0.694 | 0.789 | 0.818 | 0.942 | 0.301 | 0.96 |
+| val (3) | 0.812 | 0.812 | 0.812 | 0.625 | 1.000 | 0.930 | 0.000 | 1.42 |
+
+P/R are pooled over videos. Per video on val: 1.00 (3→3 scenes), 0.77 (6→9), 0.67 (4→7). The rule over-segments the
+two Nelly & Sherihan clips.
+
+### CHANGES MADE
+
+| # | change | effect on scene segmentation |
+|---|---|---|
+| 1 | **Unique Shots** post-processing layer (`unique.py`, API, UI, CLI) | none (verified) |
+| 2 | Optional **learned boundary classifier** + `python -m sceneseen train` (`learning.py`) | none: off by default, and the trained model was rejected |
+| 3 | Dataset roles dev / val / test; unassigned labels are ignored; `train` refuses val/test leakage | none |
+| 4 | Labels now store their provenance and correction log | none |
+| 5 | Evaluation can run from cached analysis when a video file is unavailable (iCloud-evicted) | none |
+
+### Learned vs current (macro over videos; every number is for videos the method did not see)
+
+**Dev, leave-one-video-out**
+
+| method | P@2s | R@2s | F1@1s | F1@2s | F1@3s | mean scene-count error | coverage | overflow |
+|---|---|---|---|---|---|---|---|---|
+| A current rule | 0.664 | 0.704 | 0.677 | **0.677** | 0.694 | 2.00 | 0.942 | 0.301 |
+| B tuned rule | 0.580 | 0.656 | 0.588 | 0.606 | 0.626 | 2.50 | 0.885 | 0.274 |
+| C logistic regression | 0.558 | 0.652 | 0.580 | 0.580 | 0.598 | 4.50 | 0.877 | 0.355 |
+| C gradient boosting | 0.803 | 0.684 | 0.595 | 0.698 | 0.715 | 2.67 | 0.929 | 0.370 |
+| D hybrid | 0.654 | 0.704 | 0.671 | 0.671 | 0.687 | 2.17 | 0.934 | 0.305 |
+
+| video (true → predicted scenes) | A rule | B tuned | C logreg | C gbdt | D hybrid |
+|---|---|---|---|---|---|
+| Spider-Man | 0.80 (10→12) | 0.71 (10→9) | 0.74 (10→11) | 0.80 (10→12) | 0.76 (10→13) |
+| Sabe3 Gar | 0.91 (21→25) | 0.89 (21→26) | 0.71 (21→37) | 0.86 (21→25) | 0.91 (21→25) |
+| video_01 | 0.83 (7→7) | 0.50 (7→11) | 0.44 (7→4) | 0.44 (7→4) | 0.83 (7→7) |
+| video_02 *(blank)* | 0.00 (4→2) | 0.00 (4→3) | 0.00 (4→1) | 0.50 (4→2) | 0.00 (4→2) |
+| Kamel El Adad | 0.93 (8→9) | 0.88 (8→10) | 0.82 (8→11) | 0.88 (8→10) | 0.93 (8→9) |
+| Samir w Shahir *(blank)* | 0.59 (11→8) | 0.67 (11→9) | 0.76 (11→12) | 0.71 (11→8) | 0.59 (11→8) |
+
+**Held-out validation** (fitted and tuned on the 6 dev videos only)
+
+| method | P@2s | R@2s | F1@1s | F1@2s | F1@3s | mean scene-count error | coverage | overflow |
+|---|---|---|---|---|---|---|---|---|
+| A current rule | 0.708 | 1.000 | 0.812 | **0.812** | 0.812 | 2.00 | 0.930 | 0.000 |
+| B tuned rule | 0.724 | 0.767 | 0.694 | 0.694 | 0.694 | 1.67 | 0.886 | 0.073 |
+| C logistic regression | 0.606 | 0.933 | 0.706 | 0.706 | 0.706 | 3.00 | 0.846 | 0.006 |
+| C gradient boosting | 0.724 | 0.767 | 0.694 | 0.694 | 0.694 | 1.67 | 0.930 | 0.056 |
+| D hybrid | 0.708 | 1.000 | 0.812 | 0.812 | 0.812 | 2.00 | 0.930 | 0.000 |
+
+| video (true → predicted scenes) | A rule | B tuned | C logreg | C gbdt | D hybrid |
+|---|---|---|---|---|---|
+| Kamel El Adad +1 *(blank)* | 1.00 (3→3) | 0.67 (3→2) | 1.00 (3→3) | 0.67 (3→2) | 1.00 (3→3) |
+| Nelly & Sherihan (car) | 0.77 (6→9) | 0.67 (6→8) | 0.57 (6→10) | 0.67 (6→8) | 0.77 (6→9) |
+| Nelly & Sherihan (stolen car) | 0.67 (4→7) | 0.75 (4→6) | 0.55 (4→9) | 0.75 (4→6) | 0.67 (4→7) |
+
+**Training fit (in-sample, NOT accuracy):** rule 0.677, tuned 0.735, logistic 0.716, boosting 0.770, hybrid 0.677.
+
+**Decision: all rejected; the current rule remains the default.** B: worse on 6 videos, better on 2. C logistic:
+worse on 6, better on 1. C boosting: +0.02 on dev, −0.12 on validation, worse on 5, better on 3. D hybrid: its
+selection procedure chose to leave the rule unchanged.
+
+Anchoring caveat: 6 of 9 labels come from edited rule predictions and favour the rule. On the 3 from-blank videos
+the mean F1 is rule 0.53, logistic 0.59, boosting 0.63. That is too few videos to conclude anything, but it is
+the reason the learned path is kept (off by default) instead of removed.
+
+### PERFORMANCE AFTER CHANGES
+Identical to the baseline of this round: dev F1@2s **0.677**, validation **0.812** (re-run after all code changes).
+Unique Shots has zero effect on segmentation, and the learned model is not enabled.
+
+### Unique Shots
+1,132 shots → 664 unique (41 % reduction) across the 9 videos; per video 21–64 %. Method, calibration and
+per-video table: docs/UNIQUE_SHOTS.md.

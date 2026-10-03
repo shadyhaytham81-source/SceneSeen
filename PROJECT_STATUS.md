@@ -1,6 +1,6 @@
 # SceneSeen — Project Status
 
-_Last updated: 2026-10-02 · Phase 1 (scene segmentation) · **Phase 2 has NOT started**_
+_Last updated: 2026-10-03 · Phase 1 (scene segmentation) · **Phase 2 has NOT started**_
 
 ## What SceneSeen is
 A graduation project. The long-term vision is to understand film and TV content scene by scene, so that products,
@@ -66,29 +66,44 @@ real films: about 0.6.**
 What works well: no dialogue scene was split in any of the 6 videos. No errors at fades, dissolves or fast cuts.
 Scene counts are right on average.
 
+## Added on 2026-10-03 (branch `feature/unique-shots-and-learning`)
+- **Unique Shots:** inside each scene, shots from the same camera set-up are grouped under one representative
+  (nothing deleted). Similarity = CLIP multi-frame cosine + colour + perceptual hash, calibrated on 177 labelled
+  shot pairs. 1,132 shots → 664 unique (41 %) on the 9 labelled videos. It is post-processing only, with zero
+  effect on segmentation. See [docs/UNIQUE_SHOTS.md](docs/UNIQUE_SHOTS.md).
+- **Learning from ground truth:** `python -m sceneseen train` builds one example per shot cut from the labels and
+  trains a small boundary classifier on the frozen signals. **First result: rejected.** Held-out validation F1 is
+  0.706 (logistic) and 0.694 (boosting) against 0.812 for the current rule. The rule stays the default; the
+  learned path is off unless a model is explicitly configured. See [docs/LEARNING.md](docs/LEARNING.md).
+- 3 new labelled videos form a held-out **validation** set (current rule: F1@±2s 0.812).
+- Dataset roles are now explicit (dev / val / test). Unassigned labels are never used.
+
 ## Dataset structure
 ```
-ground_truth/<name>.json          human labels (in Git)          {"video": ..., "boundaries": [seconds...]}
-ground_truth/splits.json          dev/test split (in Git)        all 6 current videos = dev
-ground_truth/videos_manifest.json exact name/size/SHA-256 of the 6 labelled videos (in Git)
-data/videos/<exact name>          the labelled videos (NOT in Git, shared separately)
-data/uploads, cache, exports      created by the app (NOT in Git)
+ground_truth/<name>.json           human labels (in Git)        {"video": ..., "boundaries": [seconds...], "provenance": {...}}
+ground_truth/splits.json           roles (in Git)               dev = 6 videos (training/development), val = 3, test = none yet
+ground_truth/provenance.json       how each existing label was made (blank vs edited predictions) + correction logs
+ground_truth/videos_manifest.json  exact name/size/SHA-256 of the 9 labelled videos (in Git)
+ground_truth/unique_shots/         shot-pair labels used to calibrate Unique Shots
+models/                            versioned trained-model artifacts (JSON; none is enabled)
+data/videos/<exact name>           the labelled videos (NOT in Git, shared separately)
+data/uploads, cache, exports       created by the app (NOT in Git)
 ```
 Collaborators: put the shared videos in `data/videos/`, run `python -m sceneseen check-data --verify`.
 New videos are simply uploaded through the website.
 
 ## What remains before Phase 1 can be frozen
-1. **Current 6 videos = development data.** Done.
-2. **Next: 4 new validation videos, independently labelled with Start Blank.** Use continuous film/series
-   segments of 5–10 min, no YouTube compilations, mixed Arabic/English. Add them to `dev` and evaluate the
-   current defaults on them.
-3. **One final improvement round, only if justified by validation evidence.** For example audio/dialogue
-   continuity for "same flat, different room". Accept it only if it improves leave-one-video-out results.
-4. **Freeze the model:** commit the final config and tag the release.
-5. **New unseen final-test videos labelled from blank.** List them under `test` in `ground_truth/splits.json`.
-6. **Final evaluation without any tuning on the test set:** `python -m sceneseen evaluate --split test`, run
-   once. Report this number in the thesis.
+1. **Label more videos from blank** (Start blank). Only 3 of 9 labels are independent, and that is the bottleneck
+   for both honest accuracy and learning. Target: at least 4 more for `val` and a separate 4–6 for `test`.
+2. Re-run `python -m sceneseen train`. Accept a learned model **only** if it beats the rule on validation.
+3. **Freeze** the model/config (commit + tag).
+4. Evaluate **once** on the unseen `test` videos: `python -m sceneseen evaluate --split test`. No tuning afterwards.
+
+Practical note: keep the project **outside iCloud-synced folders** (Desktop/Documents with "Optimise Mac Storage").
+macOS evicts videos, caches and even virtualenv files there, which makes reads hang. If it must stay there, name
+the environment `.venv.nosync` (iCloud ignores `*.nosync`).
 
 ## ⛔ Phase 2 has NOT started — and must not start yet
 No object detection, clothing/product recognition, commercial-opportunity scoring, catalog matching or viewer
-features until Phase 1 is frozen and has its final unseen-test result.
+features until Phase 1 is frozen and has its final unseen-test result. Unique Shots is a Phase 1 post-processing
+layer (it reduces how many frames a later phase would need to look at); it detects no objects.

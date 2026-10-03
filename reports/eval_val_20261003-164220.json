@@ -1,0 +1,530 @@
+{
+ "grouping_config": {
+  "clip_weight": 0.75,
+  "color_weight": 0.25,
+  "clip_floor": 0.5,
+  "window_shots": 6,
+  "window_seconds": 45.0,
+  "distance_penalty": 0.01,
+  "coherence_topk": 2,
+  "abs_threshold": 0.45,
+  "depth_threshold": 0.35,
+  "strong_threshold": 0.75,
+  "depth_mode": "climb",
+  "min_scene_seconds": 6.0
+ },
+ "methods": {
+  "baseline_all_shots": {
+   "aggregate": {
+    "videos": 3,
+    "coverage": 0.20544689577579547,
+    "overflow": 0.0,
+    "f_co": 0.3367636645260303,
+    "count_ratio": 21.75,
+    "by_tolerance": {
+     "1": {
+      "macro_f1": 0.07069958757738619,
+      "micro_precision": 0.03597122302158273,
+      "micro_recall": 1.0,
+      "micro_f1": 0.06944444444444445,
+      "mean_abs_error": 0.0
+     },
+     "2": {
+      "macro_f1": 0.07069958757738619,
+      "micro_precision": 0.03597122302158273,
+      "micro_recall": 1.0,
+      "micro_f1": 0.06944444444444445,
+      "mean_abs_error": 0.0
+     },
+     "3": {
+      "macro_f1": 0.07069958757738619,
+      "micro_precision": 0.03597122302158273,
+      "micro_recall": 1.0,
+      "micro_f1": 0.06944444444444445,
+      "mean_abs_error": 0.0
+     }
+    }
+   },
+   "per_video": [
+    {
+     "n_pred_boundaries": 51,
+     "n_gt_boundaries": 2,
+     "n_pred_scenes": 52,
+     "n_gt_scenes": 3,
+     "count_ratio": 17.333333333333332,
+     "by_tolerance": {
+      "1": {
+       "tolerance": 1.0,
+       "precision": 0.0392156862745098,
+       "recall": 1.0,
+       "f1": 0.07547169811320754,
+       "tp": 2,
+       "fp": 49,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "2": {
+       "tolerance": 2.0,
+       "precision": 0.0392156862745098,
+       "recall": 1.0,
+       "f1": 0.07547169811320754,
+       "tp": 2,
+       "fp": 49,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "3": {
+       "tolerance": 3.0,
+       "precision": 0.0392156862745098,
+       "recall": 1.0,
+       "f1": 0.07547169811320754,
+       "tp": 2,
+       "fp": 49,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      }
+     },
+     "coverage": 0.23740436384244823,
+     "overflow": 0.0,
+     "f_co": 0.3837134743977282,
+     "video": "\u0627\u0648\u0644 \u0645\u0628\u0627\u0631\u0627\u0629 \u0631\u0633\u0645\u064a\u0629 \u0644\u0634\u0631\u064a\u0641 \u0645\u0639 \u0627\u0644\u0646\u0627\u062f\u064a \u0627\u0644\u0627\u0647\u0644\u064a #\u0643\u0627\u0645\u0644_\u0627\u0644\u0639\u062f\u062f+1 - Dina Elsherbiny (1080p)"
+    },
+    {
+     "n_pred_boundaries": 111,
+     "n_gt_boundaries": 5,
+     "n_pred_scenes": 112,
+     "n_gt_scenes": 6,
+     "count_ratio": 18.666666666666668,
+     "by_tolerance": {
+      "1": {
+       "tolerance": 1.0,
+       "precision": 0.04504504504504504,
+       "recall": 1.0,
+       "f1": 0.08620689655172413,
+       "tp": 5,
+       "fp": 106,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "2": {
+       "tolerance": 2.0,
+       "precision": 0.04504504504504504,
+       "recall": 1.0,
+       "f1": 0.08620689655172413,
+       "tp": 5,
+       "fp": 106,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "3": {
+       "tolerance": 3.0,
+       "precision": 0.04504504504504504,
+       "recall": 1.0,
+       "f1": 0.08620689655172413,
+       "tp": 5,
+       "fp": 106,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      }
+     },
+     "coverage": 0.2560656479178108,
+     "overflow": 0.0,
+     "f_co": 0.40772653617634186,
+     "video": "\u0647\u062a\u0645\u0648\u062a \u0645\u0646 \u0627\u0644\u0636\u062d\u0643 \u0645\u0639 \u0627\u0644\u0644\u064a \u0647\u062a\u0639\u0645\u0644\u0647 \u062f\u0646\u064a\u0627 \u0633\u0645\u064a\u0631 \u063a\u0627\u0646\u0645 \u0641\u064a \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0648\u0645\u0635\u0637\u0641\u064a \u062e\u0627\u0637\u0631 \ud83e\udd2d\ud83e\udd2d\u0645\u0646 \u0645\u0633\u0644\u0633\u0644 \u0646\u064a\u0644\u0644\u064a \u0648\u0634\u0631\u064a\u0647\u0627\u0646 - Nelly & Sherihan (1080p, h264)"
+    },
+    {
+     "n_pred_boundaries": 116,
+     "n_gt_boundaries": 3,
+     "n_pred_scenes": 117,
+     "n_gt_scenes": 4,
+     "count_ratio": 29.25,
+     "by_tolerance": {
+      "1": {
+       "tolerance": 1.0,
+       "precision": 0.02586206896551724,
+       "recall": 1.0,
+       "f1": 0.050420168067226885,
+       "tp": 3,
+       "fp": 113,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "2": {
+       "tolerance": 2.0,
+       "precision": 0.02586206896551724,
+       "recall": 1.0,
+       "f1": 0.050420168067226885,
+       "tp": 3,
+       "fp": 113,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "3": {
+       "tolerance": 3.0,
+       "precision": 0.02586206896551724,
+       "recall": 1.0,
+       "f1": 0.050420168067226885,
+       "tp": 3,
+       "fp": 113,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      }
+     },
+     "coverage": 0.12287067556712743,
+     "overflow": 0.0,
+     "f_co": 0.2188509830040209,
+     "video": "\u0647\u062a\u0645\u0648\u062a \u0645\u0646 \u0627\u0644\u0636\u062d\u0643 \u0645\u0639 \u0646\u064a\u0644\u0644\u064a \u0648\u0634\u0631\u064a\u0647\u0627\u0646 \u0644\u0645\u0627 \u0639\u0631\u0628\u064a\u062a\u0647\u0645 \u0627\u062a\u0633\u0631\u0642\u062a \u0648\u062e\u0627\u0644\u062a\u0648 \u0635\u0628\u0627\u062d \u0647\u064a \u0627\u0644\u0644\u064a \u0631\u062c\u0639\u062a\u0647\u0627\ud83d\ude02\u0634\u0648\u0641\u0648\u0627 \u0647\u062a\u0639\u0645\u0644 \u0627\u064a\u0647 - Nelly & Sherihan (720p, h264)"
+    }
+   ]
+  },
+  "baseline_adjacent": {
+   "aggregate": {
+    "videos": 3,
+    "coverage": 0.47315868719931964,
+    "overflow": 0.07374440950675636,
+    "f_co": 0.6194720729095331,
+    "count_ratio": 4.083333333333333,
+    "by_tolerance": {
+     "1": {
+      "macro_f1": 0.25035612535612534,
+      "micro_precision": 0.15217391304347827,
+      "micro_recall": 0.7,
+      "micro_f1": 0.25,
+      "mean_abs_error": 0.0
+     },
+     "2": {
+      "macro_f1": 0.25035612535612534,
+      "micro_precision": 0.15217391304347827,
+      "micro_recall": 0.7,
+      "micro_f1": 0.25,
+      "mean_abs_error": 0.0
+     },
+     "3": {
+      "macro_f1": 0.2920227920227921,
+      "micro_precision": 0.17391304347826086,
+      "micro_recall": 0.8,
+      "micro_f1": 0.2857142857142857,
+      "mean_abs_error": 0.19333333333333336
+     }
+    }
+   },
+   "per_video": [
+    {
+     "n_pred_boundaries": 11,
+     "n_gt_boundaries": 2,
+     "n_pred_scenes": 12,
+     "n_gt_scenes": 3,
+     "count_ratio": 4.0,
+     "by_tolerance": {
+      "1": {
+       "tolerance": 1.0,
+       "precision": 0.09090909090909091,
+       "recall": 0.5,
+       "f1": 0.15384615384615385,
+       "tp": 1,
+       "fp": 10,
+       "fn": 1,
+       "mean_abs_error": 0.0
+      },
+      "2": {
+       "tolerance": 2.0,
+       "precision": 0.09090909090909091,
+       "recall": 0.5,
+       "f1": 0.15384615384615385,
+       "tp": 1,
+       "fp": 10,
+       "fn": 1,
+       "mean_abs_error": 0.0
+      },
+      "3": {
+       "tolerance": 3.0,
+       "precision": 0.09090909090909091,
+       "recall": 0.5,
+       "f1": 0.15384615384615385,
+       "tp": 1,
+       "fp": 10,
+       "fn": 1,
+       "mean_abs_error": 0.0
+      }
+     },
+     "coverage": 0.3854349674128648,
+     "overflow": 0.15036437788326526,
+     "f_co": 0.5303005044401544,
+     "video": "\u0627\u0648\u0644 \u0645\u0628\u0627\u0631\u0627\u0629 \u0631\u0633\u0645\u064a\u0629 \u0644\u0634\u0631\u064a\u0641 \u0645\u0639 \u0627\u0644\u0646\u0627\u062f\u064a \u0627\u0644\u0627\u0647\u0644\u064a #\u0643\u0627\u0645\u0644_\u0627\u0644\u0639\u062f\u062f+1 - Dina Elsherbiny (1080p)"
+    },
+    {
+     "n_pred_boundaries": 11,
+     "n_gt_boundaries": 5,
+     "n_pred_scenes": 12,
+     "n_gt_scenes": 6,
+     "count_ratio": 2.0,
+     "by_tolerance": {
+      "1": {
+       "tolerance": 1.0,
+       "precision": 0.2727272727272727,
+       "recall": 0.6,
+       "f1": 0.37499999999999994,
+       "tp": 3,
+       "fp": 8,
+       "fn": 2,
+       "mean_abs_error": 0.0
+      },
+      "2": {
+       "tolerance": 2.0,
+       "precision": 0.2727272727272727,
+       "recall": 0.6,
+       "f1": 0.37499999999999994,
+       "tp": 3,
+       "fp": 8,
+       "fn": 2,
+       "mean_abs_error": 0.0
+      },
+      "3": {
+       "tolerance": 3.0,
+       "precision": 0.36363636363636365,
+       "recall": 0.8,
+       "f1": 0.5000000000000001,
+       "tp": 4,
+       "fp": 7,
+       "fn": 1,
+       "mean_abs_error": 0.5800000000000001
+      }
+     },
+     "coverage": 0.6242690530804769,
+     "overflow": 0.07086885063700381,
+     "f_co": 0.7467847910513189,
+     "video": "\u0647\u062a\u0645\u0648\u062a \u0645\u0646 \u0627\u0644\u0636\u062d\u0643 \u0645\u0639 \u0627\u0644\u0644\u064a \u0647\u062a\u0639\u0645\u0644\u0647 \u062f\u0646\u064a\u0627 \u0633\u0645\u064a\u0631 \u063a\u0627\u0646\u0645 \u0641\u064a \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0648\u0645\u0635\u0637\u0641\u064a \u062e\u0627\u0637\u0631 \ud83e\udd2d\ud83e\udd2d\u0645\u0646 \u0645\u0633\u0644\u0633\u0644 \u0646\u064a\u0644\u0644\u064a \u0648\u0634\u0631\u064a\u0647\u0627\u0646 - Nelly & Sherihan (1080p, h264)"
+    },
+    {
+     "n_pred_boundaries": 24,
+     "n_gt_boundaries": 3,
+     "n_pred_scenes": 25,
+     "n_gt_scenes": 4,
+     "count_ratio": 6.25,
+     "by_tolerance": {
+      "1": {
+       "tolerance": 1.0,
+       "precision": 0.125,
+       "recall": 1.0,
+       "f1": 0.2222222222222222,
+       "tp": 3,
+       "fp": 21,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "2": {
+       "tolerance": 2.0,
+       "precision": 0.125,
+       "recall": 1.0,
+       "f1": 0.2222222222222222,
+       "tp": 3,
+       "fp": 21,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "3": {
+       "tolerance": 3.0,
+       "precision": 0.125,
+       "recall": 1.0,
+       "f1": 0.2222222222222222,
+       "tp": 3,
+       "fp": 21,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      }
+     },
+     "coverage": 0.4097720411046173,
+     "overflow": 0.0,
+     "f_co": 0.5813309232371259,
+     "video": "\u0647\u062a\u0645\u0648\u062a \u0645\u0646 \u0627\u0644\u0636\u062d\u0643 \u0645\u0639 \u0646\u064a\u0644\u0644\u064a \u0648\u0634\u0631\u064a\u0647\u0627\u0646 \u0644\u0645\u0627 \u0639\u0631\u0628\u064a\u062a\u0647\u0645 \u0627\u062a\u0633\u0631\u0642\u062a \u0648\u062e\u0627\u0644\u062a\u0648 \u0635\u0628\u0627\u062d \u0647\u064a \u0627\u0644\u0644\u064a \u0631\u062c\u0639\u062a\u0647\u0627\ud83d\ude02\u0634\u0648\u0641\u0648\u0627 \u0647\u062a\u0639\u0645\u0644 \u0627\u064a\u0647 - Nelly & Sherihan (720p, h264)"
+    }
+   ]
+  },
+  "sceneseen": {
+   "aggregate": {
+    "videos": 3,
+    "coverage": 0.9304262795830036,
+    "overflow": 0.0,
+    "f_co": 0.9630945897900657,
+    "count_ratio": 1.4166666666666667,
+    "by_tolerance": {
+     "1": {
+      "macro_f1": 0.8119658119658119,
+      "micro_precision": 0.625,
+      "micro_recall": 1.0,
+      "micro_f1": 0.7692307692307693,
+      "mean_abs_error": 0.0
+     },
+     "2": {
+      "macro_f1": 0.8119658119658119,
+      "micro_precision": 0.625,
+      "micro_recall": 1.0,
+      "micro_f1": 0.7692307692307693,
+      "mean_abs_error": 0.0
+     },
+     "3": {
+      "macro_f1": 0.8119658119658119,
+      "micro_precision": 0.625,
+      "micro_recall": 1.0,
+      "micro_f1": 0.7692307692307693,
+      "mean_abs_error": 0.0
+     }
+    }
+   },
+   "per_video": [
+    {
+     "n_pred_boundaries": 2,
+     "n_gt_boundaries": 2,
+     "n_pred_scenes": 3,
+     "n_gt_scenes": 3,
+     "count_ratio": 1.0,
+     "by_tolerance": {
+      "1": {
+       "tolerance": 1.0,
+       "precision": 1.0,
+       "recall": 1.0,
+       "f1": 1.0,
+       "tp": 2,
+       "fp": 0,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "2": {
+       "tolerance": 2.0,
+       "precision": 1.0,
+       "recall": 1.0,
+       "f1": 1.0,
+       "tp": 2,
+       "fp": 0,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "3": {
+       "tolerance": 3.0,
+       "precision": 1.0,
+       "recall": 1.0,
+       "f1": 1.0,
+       "tp": 2,
+       "fp": 0,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      }
+     },
+     "coverage": 1.0,
+     "overflow": 0.0,
+     "f_co": 1.0,
+     "video": "\u0627\u0648\u0644 \u0645\u0628\u0627\u0631\u0627\u0629 \u0631\u0633\u0645\u064a\u0629 \u0644\u0634\u0631\u064a\u0641 \u0645\u0639 \u0627\u0644\u0646\u0627\u062f\u064a \u0627\u0644\u0627\u0647\u0644\u064a #\u0643\u0627\u0645\u0644_\u0627\u0644\u0639\u062f\u062f+1 - Dina Elsherbiny (1080p)"
+    },
+    {
+     "n_pred_boundaries": 8,
+     "n_gt_boundaries": 5,
+     "n_pred_scenes": 9,
+     "n_gt_scenes": 6,
+     "count_ratio": 1.5,
+     "by_tolerance": {
+      "1": {
+       "tolerance": 1.0,
+       "precision": 0.625,
+       "recall": 1.0,
+       "f1": 0.7692307692307693,
+       "tp": 5,
+       "fp": 3,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "2": {
+       "tolerance": 2.0,
+       "precision": 0.625,
+       "recall": 1.0,
+       "f1": 0.7692307692307693,
+       "tp": 5,
+       "fp": 3,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "3": {
+       "tolerance": 3.0,
+       "precision": 0.625,
+       "recall": 1.0,
+       "f1": 0.7692307692307693,
+       "tp": 5,
+       "fp": 3,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      }
+     },
+     "coverage": 0.8634058088069009,
+     "overflow": 0.0,
+     "f_co": 0.9266964873955409,
+     "video": "\u0647\u062a\u0645\u0648\u062a \u0645\u0646 \u0627\u0644\u0636\u062d\u0643 \u0645\u0639 \u0627\u0644\u0644\u064a \u0647\u062a\u0639\u0645\u0644\u0647 \u062f\u0646\u064a\u0627 \u0633\u0645\u064a\u0631 \u063a\u0627\u0646\u0645 \u0641\u064a \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0648\u0645\u0635\u0637\u0641\u064a \u062e\u0627\u0637\u0631 \ud83e\udd2d\ud83e\udd2d\u0645\u0646 \u0645\u0633\u0644\u0633\u0644 \u0646\u064a\u0644\u0644\u064a \u0648\u0634\u0631\u064a\u0647\u0627\u0646 - Nelly & Sherihan (1080p, h264)"
+    },
+    {
+     "n_pred_boundaries": 6,
+     "n_gt_boundaries": 3,
+     "n_pred_scenes": 7,
+     "n_gt_scenes": 4,
+     "count_ratio": 1.75,
+     "by_tolerance": {
+      "1": {
+       "tolerance": 1.0,
+       "precision": 0.5,
+       "recall": 1.0,
+       "f1": 0.6666666666666666,
+       "tp": 3,
+       "fp": 3,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "2": {
+       "tolerance": 2.0,
+       "precision": 0.5,
+       "recall": 1.0,
+       "f1": 0.6666666666666666,
+       "tp": 3,
+       "fp": 3,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      },
+      "3": {
+       "tolerance": 3.0,
+       "precision": 0.5,
+       "recall": 1.0,
+       "f1": 0.6666666666666666,
+       "tp": 3,
+       "fp": 3,
+       "fn": 0,
+       "mean_abs_error": 0.0
+      }
+     },
+     "coverage": 0.9278730299421102,
+     "overflow": 0.0,
+     "f_co": 0.962587281974656,
+     "video": "\u0647\u062a\u0645\u0648\u062a \u0645\u0646 \u0627\u0644\u0636\u062d\u0643 \u0645\u0639 \u0646\u064a\u0644\u0644\u064a \u0648\u0634\u0631\u064a\u0647\u0627\u0646 \u0644\u0645\u0627 \u0639\u0631\u0628\u064a\u062a\u0647\u0645 \u0627\u062a\u0633\u0631\u0642\u062a \u0648\u062e\u0627\u0644\u062a\u0648 \u0635\u0628\u0627\u062d \u0647\u064a \u0627\u0644\u0644\u064a \u0631\u062c\u0639\u062a\u0647\u0627\ud83d\ude02\u0634\u0648\u0641\u0648\u0627 \u0647\u062a\u0639\u0645\u0644 \u0627\u064a\u0647 - Nelly & Sherihan (720p, h264)"
+    }
+   ]
+  }
+ },
+ "performance": [
+  {
+   "video": "\u0627\u0648\u0644 \u0645\u0628\u0627\u0631\u0627\u0629 \u0631\u0633\u0645\u064a\u0629 \u0644\u0634\u0631\u064a\u0641 \u0645\u0639 \u0627\u0644\u0646\u0627\u062f\u064a \u0627\u0644\u0627\u0647\u0644\u064a #\u0643\u0627\u0645\u0644_\u0627\u0644\u0639\u062f\u062f+1 - Dina Elsherbiny (1080p)",
+   "duration": 176.45,
+   "shots": 52,
+   "shot_detection_cached": 389.75,
+   "features_cached": 42.49364471435547
+  },
+  {
+   "video": "\u0647\u062a\u0645\u0648\u062a \u0645\u0646 \u0627\u0644\u0636\u062d\u0643 \u0645\u0639 \u0627\u0644\u0644\u064a \u0647\u062a\u0639\u0645\u0644\u0647 \u062f\u0646\u064a\u0627 \u0633\u0645\u064a\u0631 \u063a\u0627\u0646\u0645 \u0641\u064a \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0648\u0645\u0635\u0637\u0641\u064a \u062e\u0627\u0637\u0631 \ud83e\udd2d\ud83e\udd2d\u0645\u0646 \u0645\u0633\u0644\u0633\u0644 \u0646\u064a\u0644\u0644\u064a \u0648\u0634\u0631\u064a\u0647\u0627\u0646 - Nelly & Sherihan (1080p, h264)",
+   "duration": 619.06,
+   "shots": 112,
+   "shot_detection_cached": 95.87,
+   "features_cached": 11.369183540344238
+  },
+  {
+   "video": "\u0647\u062a\u0645\u0648\u062a \u0645\u0646 \u0627\u0644\u0636\u062d\u0643 \u0645\u0639 \u0646\u064a\u0644\u0644\u064a \u0648\u0634\u0631\u064a\u0647\u0627\u0646 \u0644\u0645\u0627 \u0639\u0631\u0628\u064a\u062a\u0647\u0645 \u0627\u062a\u0633\u0631\u0642\u062a \u0648\u062e\u0627\u0644\u062a\u0648 \u0635\u0628\u0627\u062d \u0647\u064a \u0627\u0644\u0644\u064a \u0631\u062c\u0639\u062a\u0647\u0627\ud83d\ude02\u0634\u0648\u0641\u0648\u0627 \u0647\u062a\u0639\u0645\u0644 \u0627\u064a\u0647 - Nelly & Sherihan (720p, h264)",
+   "duration": 722.06,
+   "shots": 117,
+   "shot_detection_cached": 107.84,
+   "features_cached": 11.268272399902344
+  }
+ ]
+}

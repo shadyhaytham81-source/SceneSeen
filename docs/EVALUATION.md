@@ -24,8 +24,10 @@ SceneSeen adds value only if it beats both.
 
 ## Protocol (no data leakage)
 
-1. Labelled videos are split **once** into dev and test (`ground_truth/splits.json`, created automatically,
-   deterministic, about 30 % test). New videos labelled later go to **dev**. The test set never changes.
+1. Every labelled video has one role in `ground_truth/splits.json`: **dev** (training/development), **val**
+   (held-out validation) or **test** (final test). A newly saved label has no role and is ignored by `evaluate`,
+   `tune` and `train` until you add its name to one of the lists, so nothing leaks by accident. The file is
+   never rewritten by the tools.
 2. `python -m sceneseen tune` grid-searches 8,100 grouping configurations **on dev only**. It also reports a
    **leave-one-video-out** score: for each dev video, tune on the others and score the held-out one. If that is
    below the untuned defaults, tuning is overfitting. The command says so and you should keep the defaults.

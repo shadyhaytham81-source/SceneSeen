@@ -20,10 +20,11 @@ from pathlib import Path
 import numpy as np
 
 from . import grouping
-from .config import Config, GroupingConfig
+from .config import Config, GroupingConfig, config_hash
 from .evaluation import aggregate, evaluate
-from .ground_truth import labelled_videos, load_label, load_or_create_split
-from .media import probe
+from .ground_truth import (ROLES, _local_upload_copy, find_video, label_files, load_label, load_or_create_split,
+                           nfc)
+from .media import VideoInfo, is_dataless, probe
 from .pipeline import load_stage_outputs
 
 log = logging.getLogger(__name__)
@@ -38,28 +39,72 @@ class NoLabelsError(RuntimeError):
     pass
 
 
+def cached_info(cfg: Config, name: str) -> VideoInfo | None:
+    """VideoInfo from a previous analysis of this file (matched by its recorded name), provided
+    shots and features for the CURRENT config are in the cache. Lets evaluation and training run
+    when the video itself is unavailable (e.g. evicted to iCloud); nothing needs decoding."""
+    shots_key = config_hash(cfg.shots)
+    feat_key = f"{shots_key}_{config_hash(cfg.features)}"
+    target = nfc(name)
+    for d in sorted(cfg.paths.cache_dir.glob("*/")):
+        info_p = d / "info.json"
+        if not info_p.exists():
+            continue
+        names = set()
+        up = d / "upload.json"
+        if up.exists():
+            names.add(nfc(json.loads(up.read_text(encoding="utf-8")).get("name", "")))
+        meta = json.loads(info_p.read_text(encoding="utf-8"))
+        names.add(nfc(Path(meta.get("path", "")).name))
+        if target in names and (d / f"shots_{shots_key}.json").exists() and (d / f"features_{feat_key}.npz").exists():
+            return VideoInfo(**meta)
+    return None
+
+
+def resolve_video(cfg: Config, name: str) -> tuple[VideoInfo | None, str]:
+    """(info, source) with source in video | upload-copy | cache | missing."""
+    vp = find_video(cfg.paths.videos_dir, name)
+    if vp.exists() and not is_dataless(vp):
+        return probe(vp), "video"
+    alt = _local_upload_copy(name, cfg.paths.cache_dir)
+    if alt is not None:
+        return probe(alt), "upload-copy"
+    info = cached_info(cfg, name)
+    return (info, "cache") if info else (None, "missing")
+
+
 def load_dataset(cfg: Config, split: str) -> list[dict]:
-    """Labelled videos for a split, with cached shots/features loaded (computed if missing)."""
-    items = labelled_videos(cfg.paths.ground_truth_dir, cfg.paths.videos_dir, cfg.paths.cache_dir)
-    if not items:
+    """Labelled videos for a role (dev | val | test | all), with shots/features loaded from cache
+    or computed. Labels without a role in splits.json are never returned."""
+    labels = label_files(cfg.paths.ground_truth_dir)
+    if not labels:
         raise NoLabelsError(
             f"no labelled videos found: put videos in {cfg.paths.videos_dir} and labels in "
             f"{cfg.paths.ground_truth_dir} (see docs/EVALUATION.md)")
-    sp = load_or_create_split(cfg.paths.ground_truth_dir, [s for s, *_ in items])
-    wanted = set(sp["dev"]) | set(sp["test"]) if split == "all" else set(sp.get(split, []))
+    sp = load_or_create_split(cfg.paths.ground_truth_dir, [nfc(p.stem) for p in labels])
+    wanted = {s for r in ROLES for s in sp[r]} if split == "all" else set(sp.get(split, []))
     data = []
-    for stem, vpath, lpath in items:
+    for lp in labels:
+        stem = nfc(lp.stem)
         if stem not in wanted:
             continue
-        info = probe(vpath)
-        label = load_label(lpath, info.duration)
+        name = json.loads(lp.read_text(encoding="utf-8")).get("video", "")
+        info, source = resolve_video(cfg, name)
+        if info is None:
+            log.warning("skipping %s: video not found in %s and no cached analysis", lp.name, cfg.paths.videos_dir)
+            continue
+        if source != "video":
+            log.warning("%s: video file unavailable, using %s", name[:40], source)
+        label = load_label(lp, info.duration)
         t = time.perf_counter()
         stage = load_stage_outputs(cfg, info)
-        data.append({"stem": stem, "info": info, "gt": label["boundaries"], "stage": stage,
-                     "load_seconds": round(time.perf_counter() - t, 2)})
+        role = next(r for r in ROLES if stem in sp[r])
+        data.append({"stem": stem, "info": info, "gt": label["boundaries"], "stage": stage, "role": role,
+                     "source": source, "label_path": lp, "load_seconds": round(time.perf_counter() - t, 2)})
         log.info("loaded %s (%d shots, %d labelled boundaries)", stem, len(stage["shots"]), len(label["boundaries"]))
     if not data:
-        raise NoLabelsError(f"split '{split}' has no videos (see {cfg.paths.ground_truth_dir}/splits.json)")
+        raise NoLabelsError(f"split '{split}' has no usable videos (see {cfg.paths.ground_truth_dir}/splits.json; "
+                            f"videos go in {cfg.paths.videos_dir})")
     return data
 
 

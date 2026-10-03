@@ -77,6 +77,10 @@ python -m sceneseen serve
 
 (Command Prompt instead of PowerShell: activate with `.venv\Scripts\activate.bat`.)
 
+> **macOS + iCloud:** do not keep the project in a folder synced by iCloud Drive with "Optimise Mac Storage"
+> (Desktop/Documents). macOS evicts videos, caches and virtualenv files to the cloud and reads then hang. Clone
+> somewhere like `~/Projects/`, or at least name the environment `.venv.nosync` (iCloud ignores `*.nosync`).
+
 The first video you analyse downloads the CLIP model (~600 MB, once). Shot detection takes about 1–2 minutes per
 10 minutes of video on a laptop CPU. Results are cached, so re-opening a video is instant.
 
@@ -113,7 +117,9 @@ you have the identical files. Without the videos it lists them as `MISSING` and 
 6. Click **Mark as reviewed**.
 7. Click **Save as ground truth** and enter your name as annotator. This writes `ground_truth/<video>.json` and
    copies the video to `data/videos/`.
-8. Commit the new label (`git add ground_truth/ && git commit`). **Never commit the video.**
+8. Give the label a role: add its name to `dev`, `val` or `test` in `ground_truth/splits.json`. Labels without a
+   role are ignored. Labels made with Start blank are the ones to use for `val` and `test`.
+9. Commit the new label (`git add ground_truth/ && git commit`). **Never commit the video.**
 
 > **Rule: a camera cut or a different camera angle does NOT automatically mean a new scene.** A conversation
 > filmed as close-up A → close-up B → wide shot is **one** scene. Start a new scene only when the **location**,
@@ -140,6 +146,10 @@ Data** downloads JSON, and **Export Scene Clips** downloads a zip of `scene_001.
 shots, cut scores, grouping decisions, thresholds, representative frames and timings, and can re-run grouping
 with new parameters instantly (preview only).
 
+**Unique Shots:** below the scene cards, every scene lists Original / Unique / Repeated shots and the reduction.
+Repeated camera set-ups are grouped under one representative thumbnail; click it to see every original occurrence,
+or switch to **All Shots**. Nothing is removed. Details: [docs/UNIQUE_SHOTS.md](docs/UNIQUE_SHOTS.md).
+
 **Command line**
 
 ```bash
@@ -149,7 +159,10 @@ python -m sceneseen analyze path/to/video.mp4 --debug    # + debug.json (shots, 
 python -m sceneseen check-data [--verify]                # are all labelled videos in data/videos/ (and identical)?
 python -m sceneseen evaluate --split dev                 # score against human labels + baselines
 python -m sceneseen tune                                 # tune thresholds on dev only (with leave-one-out check)
+python -m sceneseen evaluate --split val                 # held-out validation videos
+python -m sceneseen train                                # train + validate the optional boundary classifier
 python scripts/error_analysis.py                         # diagnose every false/missed boundary
+python scripts/unique_shots_study.py evaluate            # re-run the Unique Shots similarity comparison
 ```
 
 ## Output
@@ -175,7 +188,9 @@ python scripts/error_analysis.py                         # diagnose every false/
 | Grouping | **Windowed coherence** + TextTiling depth + minimum scene length | Links recurring set-ups across a window of shots, so A/B dialogue stays together; no training needed |
 | Export | JSON; clips re-encoded with libx264 | Verified frame-accurate. Stream copy is an option but only keyframe-accurate |
 
-Details and design decisions: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Evaluation protocol and labelling
+Details and design decisions: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Repeated-shot grouping:
+[docs/UNIQUE_SHOTS.md](docs/UNIQUE_SHOTS.md). What is trainable and how ground truth is used:
+[docs/LEARNING.md](docs/LEARNING.md). Evaluation protocol and labelling
 guide: [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ## Measured performance (Apple Silicon laptop, CPU + MPS)
@@ -209,9 +224,13 @@ sceneseen/            core package (no web code)
   ground_truth.py     label format, validation, frozen dev/test split
   evaluation.py       metrics (P/R/F1 @ tolerance, timing error, coverage/overflow)
   benchmark.py        evaluation runner, baselines, threshold tuning with leave-one-out
+  similarity.py       vectorised shot-to-shot similarity measures (CLIP cosine, colour, pHash, SSIM)
+  unique.py           Unique Shots: repeated-shot grouping per scene (post-processing)
+  learning.py         boundary examples from ground truth, optional classifier, versioned artifacts
 server/               FastAPI app + static UI (plain HTML/CSS/JS)
 config/default.toml   all thresholds and model choices
-ground_truth/         human scene-boundary labels (6 videos) + frozen dev/test split
+ground_truth/         human scene-boundary labels (9 videos), dev/val/test roles, provenance, video manifest
+models/               versioned trained boundary-model artifacts (JSON; none enabled by default)
 data/                 LOCAL ONLY: videos, uploads, caches, exports (see data/README.md)
 reports/              evaluation reports (JSON/markdown) and error analysis (images not committed)
 docs/                 ARCHITECTURE.md, EVALUATION.md (protocol + labelling guide), RESULTS.md
