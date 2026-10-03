@@ -1,0 +1,197 @@
+{
+ "format_version": 1,
+ "algorithm": "logistic_regression",
+ "features": [
+  "score",
+  "depth_climb",
+  "depth_window",
+  "score_rel",
+  "score_w2",
+  "score_w10",
+  "adj_clip",
+  "adj_color",
+  "cross_mean",
+  "left_coherence",
+  "right_coherence",
+  "log_dur_prev",
+  "log_dur_next",
+  "pace",
+  "trans_peak",
+  "trans_gradual"
+ ],
+ "mean": [
+  0.2624856706907058,
+  0.12210160606711574,
+  0.14965905945681962,
+  0.028721566577634867,
+  0.30165330079885627,
+  0.2516330966582665,
+  0.6641685333477675,
+  0.618966424553352,
+  0.44172281281218023,
+  0.4620926887414159,
+  0.4630553082337041,
+  1.6020452096264743,
+  1.602578979518992,
+  8.039053254437869,
+  0.9140249703762799,
+  0.0
+ ],
+ "scale": [
+  0.189109481670108,
+  0.2160633473551718,
+  0.23707331150850852,
+  0.13156877711808612,
+  0.23090360507600505,
+  0.17889432213936274,
+  0.12080415511751291,
+  0.14588227511499935,
+  0.16023725242171202,
+  0.15438166874515252,
+  0.15478256754287828,
+  0.7267628313930544,
+  0.7271924381290048,
+  4.1004706386831264,
+  0.08206954274471462,
+  1.0
+ ],
+ "coef": [
+  -0.14047035216395154,
+  1.3563791916975134,
+  0.4055855828132069,
+  -0.037972116590885834,
+  1.3054351066549728,
+  0.4869985674817656,
+  0.4258497085862517,
+  -0.32888165534137864,
+  0.25759754961113024,
+  -0.331183637481642,
+  0.015328841009695664,
+  0.03927741782107431,
+  -0.1711901305696486,
+  -0.5387544586646272,
+  0.13358305078399427,
+  0.0
+ ],
+ "intercept": -3.397428412951969,
+ "threshold": 0.5,
+ "min_scene_seconds": 10.0,
+ "created": "2026-10-03T16:42:08",
+ "random_seed": 13,
+ "hyperparameters": {
+  "C": 0.3,
+  "class_weight": "balanced",
+  "selected_by": "leave-one-video-out on training videos"
+ },
+ "training_videos": [
+  {
+   "stem": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "label_sha256": "f43103e46939776a9ef8ab14ce888a3426c85c0100a4009ec5da3d13a240822f",
+   "cuts": 155,
+   "positives": 9,
+   "unreachable_boundaries": 0
+  },
+  {
+   "stem": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "label_sha256": "7f42f3dc82cc33ecba2b3237ba2b0357affab0cc8b09dd082103b75ba9249c12",
+   "cuts": 115,
+   "positives": 20,
+   "unreachable_boundaries": 0
+  },
+  {
+   "stem": "video_01.mp4",
+   "label_sha256": "87866db24da73ad068c1eb4fcfdb7e44d10c8d7b1da747be434c4836fcfb67b2",
+   "cuts": 232,
+   "positives": 6,
+   "unreachable_boundaries": 0
+  },
+  {
+   "stem": "video_02",
+   "label_sha256": "d30d4932089a977d05c0a2c9e4af8c25b354221d0885fb5663cb8b73eca3a870",
+   "cuts": 127,
+   "positives": 1,
+   "unreachable_boundaries": 2
+  },
+  {
+   "stem": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "label_sha256": "fdd0208484437145b0320020838e9be32b3014b63049e0cb7c0259f6929c5748",
+   "cuts": 151,
+   "positives": 7,
+   "unreachable_boundaries": 0
+  },
+  {
+   "stem": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "label_sha256": "bb16e0280a27d05ac2e57136972a939ebe87d99c4933f0225962029ab4fa1e52",
+   "cuts": 65,
+   "positives": 10,
+   "unreachable_boundaries": 0
+  }
+ ],
+ "ground_truth_version": "d9a77e74b9ec365c",
+ "grouping_config_for_features": {
+  "clip_weight": 0.75,
+  "color_weight": 0.25,
+  "clip_floor": 0.5,
+  "window_shots": 6,
+  "window_seconds": 45.0,
+  "distance_penalty": 0.01,
+  "coherence_topk": 2,
+  "abs_threshold": 0.45,
+  "depth_threshold": 0.35,
+  "strong_threshold": 0.75,
+  "depth_mode": "climb",
+  "min_scene_seconds": 6.0
+ },
+ "label_tolerance_seconds": 2.0,
+ "sklearn_version": "1.9.1",
+ "validation_videos": [
+  "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+  "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+  "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)"
+ ],
+ "metrics": {
+  "dev_leave_one_video_out": {
+   "precision": 0.5582491582491582,
+   "recall": 0.6518518518518519,
+   "f1_1s": 0.580167739610464,
+   "f1_2s": 0.580167739610464,
+   "f1_3s": 0.5977115992595868,
+   "coverage": 0.8774003210064564,
+   "overflow": 0.3545288853367921,
+   "mean_abs_scene_count_error": 4.5
+  },
+  "validation": {
+   "precision": 0.6064814814814815,
+   "recall": 0.9333333333333332,
+   "f1_1s": 0.7056277056277057,
+   "f1_2s": 0.7056277056277057,
+   "f1_3s": 0.7056277056277057,
+   "coverage": 0.8457920319348499,
+   "overflow": 0.005548280919621618,
+   "mean_abs_scene_count_error": 3.0
+  },
+  "current_rule_dev_leave_one_video_out": {
+   "precision": 0.6638708513708514,
+   "recall": 0.7037037037037037,
+   "f1_1s": 0.6773321449792037,
+   "f1_2s": 0.6773321449792037,
+   "f1_3s": 0.6939988116458705,
+   "coverage": 0.9420507952374777,
+   "overflow": 0.3014791428981105,
+   "mean_abs_scene_count_error": 2.0
+  },
+  "current_rule_validation": {
+   "precision": 0.7083333333333334,
+   "recall": 1.0,
+   "f1_1s": 0.8119658119658119,
+   "f1_2s": 0.8119658119658119,
+   "f1_3s": 0.8119658119658119,
+   "coverage": 0.9304262795830036,
+   "overflow": 0.0,
+   "mean_abs_scene_count_error": 2.0
+  }
+ },
+ "accepted": false,
+ "decision_rule": "better than the current rule on dev leave-one-video-out AND not worse on validation AND better on more videos than worse",
+ "artifact_hash": "49158b82ada1800b"
+}

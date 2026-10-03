@@ -1,0 +1,85 @@
+{
+ "n_pairs": 177,
+ "n_duplicate": 95,
+ "methods": {
+  "clip_mean": {
+   "roc_auc": 0.9712451861360719,
+   "average_precision": 0.9772687925329392,
+   "best_f1": 0.9206349206349206,
+   "best_threshold": 0.8967555463314056,
+   "held_out_f1": 0.9109947643979057
+  },
+  "clip_best_frame": {
+   "roc_auc": 0.968806161745828,
+   "average_precision": 0.9732187193301083,
+   "best_f1": 0.9162561576354681,
+   "best_threshold": 0.8608946204185486,
+   "held_out_f1": 0.9108910891089109
+  },
+  "clip_matched": {
+   "roc_auc": 0.9690629011553273,
+   "average_precision": 0.9734470010424837,
+   "best_f1": 0.911764705882353,
+   "best_threshold": 0.8390375673770905,
+   "held_out_f1": 0.8730964467005076
+  },
+  "clip_worst_matched": {
+   "roc_auc": 0.9590500641848523,
+   "average_precision": 0.9633547818928085,
+   "best_f1": 0.9062499999999999,
+   "best_threshold": 0.8194950520992279,
+   "held_out_f1": 0.8842105263157894
+  },
+  "color": {
+   "roc_auc": 0.9621309370988447,
+   "average_precision": 0.970101721492223,
+   "best_f1": 0.9157894736842105,
+   "best_threshold": 0.8158202171325684,
+   "held_out_f1": 0.9109947643979057
+  },
+  "phash": {
+   "roc_auc": 0.9639281129653402,
+   "average_precision": 0.9710091363735525,
+   "best_f1": 0.9032258064516129,
+   "best_threshold": 0.703125,
+   "held_out_f1": 0.8648648648648649
+  },
+  "ssim": {
+   "roc_auc": 0.9528883183568677,
+   "average_precision": 0.9692899999257376,
+   "best_f1": 0.924731182795699,
+   "best_threshold": 0.44847627236688103,
+   "held_out_f1": 0.9139784946236559
+  },
+  "clip_matched+color": {
+   "roc_auc": 0.9775353016688062,
+   "average_precision": 0.9809701359169457,
+   "best_f1": 0.9278350515463918,
+   "best_threshold": 0.5414267302388143,
+   "held_out_f1": 0.9191919191919192
+  },
+  "clip_matched+phash": {
+   "roc_auc": 0.9797175866495507,
+   "average_precision": 0.984364817981108,
+   "best_f1": 0.9479166666666666,
+   "best_threshold": 0.4866698473317084,
+   "held_out_f1": 0.9430051813471503
+  },
+  "clip_matched+ssim": {
+   "roc_auc": 0.9682926829268294,
+   "average_precision": 0.9789398901314503,
+   "best_f1": 0.9281767955801105,
+   "best_threshold": 0.5416682095222508,
+   "held_out_f1": 0.8829787234042553
+  },
+  "clip_matched+color+phash+ssim": {
+   "roc_auc": 0.9851091142490372,
+   "average_precision": 0.9891709319817283,
+   "best_f1": 0.9574468085106383,
+   "best_threshold": 0.5140449123637789,
+   "held_out_f1": 0.9518716577540107
+  }
+ },
+ "always_duplicate_at_or_above": 0.9146167039871216,
+ "never_duplicate_below": 0.8042222261428833
+}
