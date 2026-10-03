@@ -7,7 +7,12 @@
     "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
     "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)"
   ],
+  "val": [
+    "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+    "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+    "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)"
+  ],
   "test": [],
   "seed": 13,
-  "note": "2026-10-02: all 6 first labels are dev. 4 were made by correcting SceneSeen predictions (anchoring bias), so none can serve as an unbiased final test set. Label a NEW set from blank for test."
+  "note": "2026-10-02: all 6 first labels are dev. 4 were made by correcting SceneSeen predictions (anchoring bias), so none can serve as an unbiased final test set. Label a NEW set from blank for test. | 2026-10-03: 3 newly labelled videos assigned to 'val' (held-out validation; never used for training or tuning). Kamel El Adad+1 was labelled from blank; the two Nelly & Sherihan clips were made by editing predictions (see provenance.json)."
 }

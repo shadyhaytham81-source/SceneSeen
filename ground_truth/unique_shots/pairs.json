@@ -1,0 +1,1128 @@
+{
+ "description": "Within-scene shot pairs sampled evenly across the CLIP multi-frame similarity range (shuffled). Shot indices refer to the shot list of the default shot detector config.",
+ "sampling_seed": 20261003,
+ "pairs": [
+  {
+   "id": "p000",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 111,
+   "shot_b": 115
+  },
+  {
+   "id": "p001",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 86,
+   "shot_b": 87
+  },
+  {
+   "id": "p002",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 19,
+   "shot_b": 23
+  },
+  {
+   "id": "p003",
+   "video": "video_01.mp4",
+   "shot_a": 70,
+   "shot_b": 72
+  },
+  {
+   "id": "p004",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 58,
+   "shot_b": 60
+  },
+  {
+   "id": "p005",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 123,
+   "shot_b": 137
+  },
+  {
+   "id": "p006",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 17,
+   "shot_b": 20
+  },
+  {
+   "id": "p007",
+   "video": "video_02",
+   "shot_a": 67,
+   "shot_b": 71
+  },
+  {
+   "id": "p008",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 92,
+   "shot_b": 105
+  },
+  {
+   "id": "p009",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 11,
+   "shot_b": 42
+  },
+  {
+   "id": "p010",
+   "video": "video_02",
+   "shot_a": 72,
+   "shot_b": 85
+  },
+  {
+   "id": "p011",
+   "video": "video_02",
+   "shot_a": 12,
+   "shot_b": 25
+  },
+  {
+   "id": "p012",
+   "video": "video_01.mp4",
+   "shot_a": 82,
+   "shot_b": 111
+  },
+  {
+   "id": "p013",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 17,
+   "shot_b": 22
+  },
+  {
+   "id": "p014",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 29,
+   "shot_b": 35
+  },
+  {
+   "id": "p015",
+   "video": "video_01.mp4",
+   "shot_a": 144,
+   "shot_b": 149
+  },
+  {
+   "id": "p016",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 19,
+   "shot_b": 27
+  },
+  {
+   "id": "p017",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 55,
+   "shot_b": 62
+  },
+  {
+   "id": "p018",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 24,
+   "shot_b": 29
+  },
+  {
+   "id": "p019",
+   "video": "video_01.mp4",
+   "shot_a": 146,
+   "shot_b": 149
+  },
+  {
+   "id": "p020",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 80,
+   "shot_b": 100
+  },
+  {
+   "id": "p021",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 15,
+   "shot_b": 35
+  },
+  {
+   "id": "p022",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 67,
+   "shot_b": 71
+  },
+  {
+   "id": "p023",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 51,
+   "shot_b": 68
+  },
+  {
+   "id": "p024",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 128,
+   "shot_b": 142
+  },
+  {
+   "id": "p025",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 120,
+   "shot_b": 125
+  },
+  {
+   "id": "p026",
+   "video": "video_01.mp4",
+   "shot_a": 164,
+   "shot_b": 184
+  },
+  {
+   "id": "p027",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 4,
+   "shot_b": 8
+  },
+  {
+   "id": "p028",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 120,
+   "shot_b": 123
+  },
+  {
+   "id": "p029",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 92,
+   "shot_b": 97
+  },
+  {
+   "id": "p030",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 11,
+   "shot_b": 49
+  },
+  {
+   "id": "p031",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 40,
+   "shot_b": 42
+  },
+  {
+   "id": "p032",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 23,
+   "shot_b": 33
+  },
+  {
+   "id": "p033",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 21,
+   "shot_b": 55
+  },
+  {
+   "id": "p034",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 37,
+   "shot_b": 51
+  },
+  {
+   "id": "p035",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 91,
+   "shot_b": 97
+  },
+  {
+   "id": "p036",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 31,
+   "shot_b": 32
+  },
+  {
+   "id": "p037",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 7,
+   "shot_b": 15
+  },
+  {
+   "id": "p038",
+   "video": "video_01.mp4",
+   "shot_a": 151,
+   "shot_b": 157
+  },
+  {
+   "id": "p039",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 57,
+   "shot_b": 67
+  },
+  {
+   "id": "p040",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 88,
+   "shot_b": 90
+  },
+  {
+   "id": "p041",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 30,
+   "shot_b": 52
+  },
+  {
+   "id": "p042",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 70,
+   "shot_b": 74
+  },
+  {
+   "id": "p043",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 34,
+   "shot_b": 38
+  },
+  {
+   "id": "p044",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 59,
+   "shot_b": 62
+  },
+  {
+   "id": "p045",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 4,
+   "shot_b": 6
+  },
+  {
+   "id": "p046",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 40,
+   "shot_b": 43
+  },
+  {
+   "id": "p047",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 95,
+   "shot_b": 97
+  },
+  {
+   "id": "p048",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 96,
+   "shot_b": 106
+  },
+  {
+   "id": "p049",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 30,
+   "shot_b": 33
+  },
+  {
+   "id": "p050",
+   "video": "video_02",
+   "shot_a": 41,
+   "shot_b": 43
+  },
+  {
+   "id": "p051",
+   "video": "video_01.mp4",
+   "shot_a": 86,
+   "shot_b": 109
+  },
+  {
+   "id": "p052",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 23,
+   "shot_b": 42
+  },
+  {
+   "id": "p053",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 31,
+   "shot_b": 35
+  },
+  {
+   "id": "p054",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 39,
+   "shot_b": 41
+  },
+  {
+   "id": "p055",
+   "video": "video_01.mp4",
+   "shot_a": 136,
+   "shot_b": 149
+  },
+  {
+   "id": "p056",
+   "video": "video_01.mp4",
+   "shot_a": 130,
+   "shot_b": 134
+  },
+  {
+   "id": "p057",
+   "video": "video_02",
+   "shot_a": 16,
+   "shot_b": 18
+  },
+  {
+   "id": "p058",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 85,
+   "shot_b": 87
+  },
+  {
+   "id": "p059",
+   "video": "video_01.mp4",
+   "shot_a": 44,
+   "shot_b": 58
+  },
+  {
+   "id": "p060",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 16,
+   "shot_b": 27
+  },
+  {
+   "id": "p061",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 20,
+   "shot_b": 41
+  },
+  {
+   "id": "p062",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 0,
+   "shot_b": 3
+  },
+  {
+   "id": "p063",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 33,
+   "shot_b": 45
+  },
+  {
+   "id": "p064",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 27,
+   "shot_b": 35
+  },
+  {
+   "id": "p065",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 19,
+   "shot_b": 26
+  },
+  {
+   "id": "p066",
+   "video": "video_02",
+   "shot_a": 121,
+   "shot_b": 123
+  },
+  {
+   "id": "p067",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 15,
+   "shot_b": 19
+  },
+  {
+   "id": "p068",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 92,
+   "shot_b": 100
+  },
+  {
+   "id": "p069",
+   "video": "video_01.mp4",
+   "shot_a": 47,
+   "shot_b": 51
+  },
+  {
+   "id": "p070",
+   "video": "video_01.mp4",
+   "shot_a": 158,
+   "shot_b": 176
+  },
+  {
+   "id": "p071",
+   "video": "video_01.mp4",
+   "shot_a": 195,
+   "shot_b": 197
+  },
+  {
+   "id": "p072",
+   "video": "video_01.mp4",
+   "shot_a": 131,
+   "shot_b": 142
+  },
+  {
+   "id": "p073",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 105,
+   "shot_b": 107
+  },
+  {
+   "id": "p074",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 90,
+   "shot_b": 104
+  },
+  {
+   "id": "p075",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 32,
+   "shot_b": 41
+  },
+  {
+   "id": "p076",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 71,
+   "shot_b": 76
+  },
+  {
+   "id": "p077",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 81,
+   "shot_b": 105
+  },
+  {
+   "id": "p078",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 80,
+   "shot_b": 84
+  },
+  {
+   "id": "p079",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 25,
+   "shot_b": 27
+  },
+  {
+   "id": "p080",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 8,
+   "shot_b": 30
+  },
+  {
+   "id": "p081",
+   "video": "video_01.mp4",
+   "shot_a": 43,
+   "shot_b": 45
+  },
+  {
+   "id": "p082",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 69,
+   "shot_b": 71
+  },
+  {
+   "id": "p083",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 99,
+   "shot_b": 101
+  },
+  {
+   "id": "p084",
+   "video": "video_01.mp4",
+   "shot_a": 13,
+   "shot_b": 30
+  },
+  {
+   "id": "p085",
+   "video": "video_02",
+   "shot_a": 30,
+   "shot_b": 32
+  },
+  {
+   "id": "p086",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 17,
+   "shot_b": 36
+  },
+  {
+   "id": "p087",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 8,
+   "shot_b": 25
+  },
+  {
+   "id": "p088",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 39,
+   "shot_b": 46
+  },
+  {
+   "id": "p089",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 84,
+   "shot_b": 97
+  },
+  {
+   "id": "p090",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 89,
+   "shot_b": 93
+  },
+  {
+   "id": "p091",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 36,
+   "shot_b": 39
+  },
+  {
+   "id": "p092",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 52,
+   "shot_b": 54
+  },
+  {
+   "id": "p093",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 0,
+   "shot_b": 18
+  },
+  {
+   "id": "p094",
+   "video": "video_02",
+   "shot_a": 7,
+   "shot_b": 37
+  },
+  {
+   "id": "p095",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 88,
+   "shot_b": 90
+  },
+  {
+   "id": "p096",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 119,
+   "shot_b": 128
+  },
+  {
+   "id": "p097",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 93,
+   "shot_b": 98
+  },
+  {
+   "id": "p098",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 14,
+   "shot_b": 43
+  },
+  {
+   "id": "p099",
+   "video": "video_01.mp4",
+   "shot_a": 144,
+   "shot_b": 146
+  },
+  {
+   "id": "p100",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 118,
+   "shot_b": 124
+  },
+  {
+   "id": "p101",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 96,
+   "shot_b": 108
+  },
+  {
+   "id": "p102",
+   "video": "video_02",
+   "shot_a": 14,
+   "shot_b": 22
+  },
+  {
+   "id": "p103",
+   "video": "video_02",
+   "shot_a": 111,
+   "shot_b": 124
+  },
+  {
+   "id": "p104",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 11,
+   "shot_b": 13
+  },
+  {
+   "id": "p105",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 36,
+   "shot_b": 42
+  },
+  {
+   "id": "p106",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 61,
+   "shot_b": 63
+  },
+  {
+   "id": "p107",
+   "video": "video_02",
+   "shot_a": 113,
+   "shot_b": 126
+  },
+  {
+   "id": "p108",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 8,
+   "shot_b": 43
+  },
+  {
+   "id": "p109",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 56,
+   "shot_b": 58
+  },
+  {
+   "id": "p110",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 39,
+   "shot_b": 50
+  },
+  {
+   "id": "p111",
+   "video": "video_01.mp4",
+   "shot_a": 107,
+   "shot_b": 113
+  },
+  {
+   "id": "p112",
+   "video": "video_01.mp4",
+   "shot_a": 58,
+   "shot_b": 61
+  },
+  {
+   "id": "p113",
+   "video": "video_02",
+   "shot_a": 3,
+   "shot_b": 7
+  },
+  {
+   "id": "p114",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 32,
+   "shot_b": 48
+  },
+  {
+   "id": "p115",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 2,
+   "shot_b": 18
+  },
+  {
+   "id": "p116",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 24,
+   "shot_b": 39
+  },
+  {
+   "id": "p117",
+   "video": "video_01.mp4",
+   "shot_a": 74,
+   "shot_b": 104
+  },
+  {
+   "id": "p118",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 11,
+   "shot_b": 16
+  },
+  {
+   "id": "p119",
+   "video": "video_02",
+   "shot_a": 27,
+   "shot_b": 33
+  },
+  {
+   "id": "p120",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 32,
+   "shot_b": 36
+  },
+  {
+   "id": "p121",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 30,
+   "shot_b": 39
+  },
+  {
+   "id": "p122",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 119,
+   "shot_b": 122
+  },
+  {
+   "id": "p123",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 31,
+   "shot_b": 40
+  },
+  {
+   "id": "p124",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 31,
+   "shot_b": 33
+  },
+  {
+   "id": "p125",
+   "video": "video_01.mp4",
+   "shot_a": 225,
+   "shot_b": 227
+  },
+  {
+   "id": "p126",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 123,
+   "shot_b": 125
+  },
+  {
+   "id": "p127",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 88,
+   "shot_b": 109
+  },
+  {
+   "id": "p128",
+   "video": "video_02",
+   "shot_a": 85,
+   "shot_b": 99
+  },
+  {
+   "id": "p129",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 46,
+   "shot_b": 63
+  },
+  {
+   "id": "p130",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 120,
+   "shot_b": 135
+  },
+  {
+   "id": "p131",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 109,
+   "shot_b": 125
+  },
+  {
+   "id": "p132",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 66,
+   "shot_b": 80
+  },
+  {
+   "id": "p133",
+   "video": "video_02",
+   "shot_a": 14,
+   "shot_b": 25
+  },
+  {
+   "id": "p134",
+   "video": "video_01.mp4",
+   "shot_a": 50,
+   "shot_b": 56
+  },
+  {
+   "id": "p135",
+   "video": "video_01.mp4",
+   "shot_a": 45,
+   "shot_b": 47
+  },
+  {
+   "id": "p136",
+   "video": "video_02",
+   "shot_a": 12,
+   "shot_b": 14
+  },
+  {
+   "id": "p137",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 96,
+   "shot_b": 109
+  },
+  {
+   "id": "p138",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 66,
+   "shot_b": 70
+  },
+  {
+   "id": "p139",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 122,
+   "shot_b": 132
+  },
+  {
+   "id": "p140",
+   "video": "video_01.mp4",
+   "shot_a": 60,
+   "shot_b": 64
+  },
+  {
+   "id": "p141",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 9,
+   "shot_b": 11
+  },
+  {
+   "id": "p142",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 75,
+   "shot_b": 76
+  },
+  {
+   "id": "p143",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 101,
+   "shot_b": 103
+  },
+  {
+   "id": "p144",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 113,
+   "shot_b": 124
+  },
+  {
+   "id": "p145",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 35,
+   "shot_b": 39
+  },
+  {
+   "id": "p146",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 85,
+   "shot_b": 93
+  },
+  {
+   "id": "p147",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 38,
+   "shot_b": 43
+  },
+  {
+   "id": "p148",
+   "video": "video_01.mp4",
+   "shot_a": 136,
+   "shot_b": 146
+  },
+  {
+   "id": "p149",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 58,
+   "shot_b": 64
+  },
+  {
+   "id": "p150",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 5,
+   "shot_b": 7
+  },
+  {
+   "id": "p151",
+   "video": "video_02",
+   "shot_a": 4,
+   "shot_b": 34
+  },
+  {
+   "id": "p152",
+   "video": "video_02",
+   "shot_a": 17,
+   "shot_b": 19
+  },
+  {
+   "id": "p153",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 45,
+   "shot_b": 47
+  },
+  {
+   "id": "p154",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 3,
+   "shot_b": 39
+  },
+  {
+   "id": "p155",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 51,
+   "shot_b": 52
+  },
+  {
+   "id": "p156",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 4,
+   "shot_b": 20
+  },
+  {
+   "id": "p157",
+   "video": "video_02",
+   "shot_a": 45,
+   "shot_b": 52
+  },
+  {
+   "id": "p158",
+   "video": "video_01.mp4",
+   "shot_a": 185,
+   "shot_b": 187
+  },
+  {
+   "id": "p159",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 48,
+   "shot_b": 65
+  },
+  {
+   "id": "p160",
+   "video": "video_02",
+   "shot_a": 77,
+   "shot_b": 85
+  },
+  {
+   "id": "p161",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 7,
+   "shot_b": 13
+  },
+  {
+   "id": "p162",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 114,
+   "shot_b": 121
+  },
+  {
+   "id": "p163",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 90,
+   "shot_b": 109
+  },
+  {
+   "id": "p164",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 90,
+   "shot_b": 102
+  },
+  {
+   "id": "p165",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 109,
+   "shot_b": 111
+  },
+  {
+   "id": "p166",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 68,
+   "shot_b": 69
+  },
+  {
+   "id": "p167",
+   "video": "هتموت من الضحك مع نيللي وشريهان لما عربيتهم اتسرقت وخالتو صباح هي اللي رجعتها😂شوفوا هتعمل ايه - Nelly & Sherihan (720p, h264)",
+   "shot_a": 74,
+   "shot_b": 90
+  },
+  {
+   "id": "p168",
+   "video": "video_01.mp4",
+   "shot_a": 55,
+   "shot_b": 57
+  },
+  {
+   "id": "p169",
+   "video": "video_02",
+   "shot_a": 99,
+   "shot_b": 107
+  },
+  {
+   "id": "p170",
+   "video": "أنا بحب بيتكم وبحب اللمة بتاعتكم❤️ ليلى اخيرا وصلت لحل مع شادية ويزبك #كامل_العدد - ON drama (1080p)",
+   "shot_a": 48,
+   "shot_b": 55
+  },
+  {
+   "id": "p171",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 114,
+   "shot_b": 142
+  },
+  {
+   "id": "p172",
+   "video": "video_01.mp4",
+   "shot_a": 136,
+   "shot_b": 144
+  },
+  {
+   "id": "p173",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 7,
+   "shot_b": 19
+  },
+  {
+   "id": "p174",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 127,
+   "shot_b": 129
+  },
+  {
+   "id": "p175",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 14,
+   "shot_b": 19
+  },
+  {
+   "id": "p176",
+   "video": "Sabe3 Gar Episode 14 مسلسل سابع جار الحلقة الرابعة عشر - The Producers Films (1080p)",
+   "shot_a": 59,
+   "shot_b": 61
+  },
+  {
+   "id": "p177",
+   "video": "هتموت من الضحك مع اللي هتعمله دنيا سمير غانم في العربية ومصطفي خاطر 🤭🤭من مسلسل نيللي وشريهان - Nelly & Sherihan (1080p, h264)",
+   "shot_a": 96,
+   "shot_b": 97
+  },
+  {
+   "id": "p178",
+   "video": "🤣😁اشهر مشهد هيموتك من الضحك في سمير وشهير وبهير لما قابل عبد الصمد و هو صغير - Rotana Studios (1080p)",
+   "shot_a": 33,
+   "shot_b": 49
+  },
+  {
+   "id": "p179",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 78,
+   "shot_b": 80
+  },
+  {
+   "id": "p180",
+   "video": "video_02",
+   "shot_a": 79,
+   "shot_b": 83
+  },
+  {
+   "id": "p181",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 128,
+   "shot_b": 130
+  },
+  {
+   "id": "p182",
+   "video": "اول مباراة رسمية لشريف مع النادي الاهلي #كامل_العدد+1 - Dina Elsherbiny (1080p)",
+   "shot_a": 23,
+   "shot_b": 38
+  },
+  {
+   "id": "p183",
+   "video": "video_02",
+   "shot_a": 94,
+   "shot_b": 108
+  },
+  {
+   "id": "p184",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 16,
+   "shot_b": 25
+  },
+  {
+   "id": "p185",
+   "video": "video_02",
+   "shot_a": 28,
+   "shot_b": 34
+  },
+  {
+   "id": "p186",
+   "video": "SPIDER-MAN NO WAY HOME - First 10 Minutes - Sony Pictures Entertainment (1080p)",
+   "shot_a": 123,
+   "shot_b": 135
+  }
+ ]
+}
