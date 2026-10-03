@@ -151,6 +151,8 @@ async function loadResult(vid) {
   state.params = null;
   renderResult(r);
   show("results");
+  state.uniqueOpen = null;
+  loadUnique(vid);
 }
 
 function renderResult(r) {
@@ -194,6 +196,7 @@ function renderResult(r) {
   $("#editTools").hidden = !state.editing;
   $("#editToggle").disabled = !!r.preview_only;
   $("#exportClips").disabled = $("#exportJson").disabled = !!r.preview_only;
+  if (r.preview_only) $("#uniqPanel").hidden = true;   // unique shots follow the saved scenes
   if (devOn() && r.debug) renderDebug(r);
 }
 
@@ -257,6 +260,84 @@ $("#player").addEventListener("error", () => {
   $("#nowPlaying").textContent = "This browser cannot play this video format.";
 });
 
+// ------------------------------------------------------------------ unique shots
+const GROUP_COLORS = ["#f2b544", "#6cb4a8", "#c97b9d", "#7d9bd8", "#d98b5f", "#9fbf6b", "#b49ad9", "#d9c48b", "#e07a7a", "#5fb0d9"];
+async function loadUnique(vid) {
+  const panel = $("#uniqPanel");
+  try {
+    state.unique = await api(`/api/videos/${vid}/unique-shots`);
+    panel.hidden = false;
+    renderUnique();
+  } catch (_) { panel.hidden = true; }
+}
+function shotTile(u, shotId, { badge, cap, title, color, onclick }) {
+  const b = el("button", { class: "ushot" + (color ? " rep-dot" : ""), type: "button", title: title || "",
+    style: `background-image:url(${u.thumb_base}${shotId})${color ? `;--g:${color}` : ""}`, onclick });
+  if (badge) b.append(el("span", { class: "badge" }, badge));
+  if (cap) b.append(el("span", { class: "cap" }, cap));
+  return b;
+}
+function renderUnique() {
+  const u = state.unique;
+  if (!u) return;
+  const mode = state.uniqueMode || "unique", s = u.summary;
+  $("#uniqModeUnique").classList.toggle("on", mode === "unique");
+  $("#uniqModeAll").classList.toggle("on", mode === "all");
+  $("#uniqSummary").textContent = `Original Shots: ${s.original_shots} · Unique Shots: ${s.unique_shots} · Repeated Shots: ${s.repeated_shots} · Reduction: ${Math.round(s.reduction * 100)}%`;
+  const seek = (t) => { const p = $("#player"); state.previewEnd = null; p.currentTime = t + 0.01; $(".player-wrap").scrollIntoView({ behavior: "smooth", block: "center" }); };
+  $("#uniqScenes").replaceChildren(...u.scenes.map((sc, i) => {
+    const grid = el("div", { class: "ugrid" });
+    if (mode === "unique") {
+      sc.unique.forEach((g) => {
+        const tile = shotTile(u, g.representative_shot_id, {
+          badge: g.occurrence_count > 1 ? `×${g.occurrence_count}` : "", cap: fmt(g.first_seen),
+          title: `${g.unique_shot_id}: ${g.occurrence_count} occurrence(s). Click to inspect.`,
+          onclick: () => {
+            const open = tile.classList.contains("open");
+            grid.querySelectorAll(".uocc").forEach((n) => n.remove());
+            grid.querySelectorAll(".ushot.open").forEach((n) => n.classList.remove("open"));
+            if (open) return;
+            tile.classList.add("open");
+            const occGrid = el("div", { class: "ugrid" }, ...g.occurrences.map((o) => shotTile(u, o.shot_id, {
+              badge: o.shot_id === g.representative_shot_id ? "representative" : `${Math.round(o.similarity_to_representative * 100)}%`,
+              cap: `#${o.shot_id} · ${fmt(o.start)} → ${fmt(o.end)}`, title: "Play from this occurrence",
+              onclick: () => seek(o.start) })));
+            const maybe = (g.possible_duplicates_of || []).map((r) => r.unique_shot_id).join(", ");
+            const box = el("div", { class: "uocc" },
+              el("h5", {}, `${g.unique_shot_id} · ${g.occurrence_count} occurrence${g.occurrence_count > 1 ? "s" : ""} · ${fmtDur(g.total_duration)} on screen`),
+              occGrid, maybe ? el("p", { class: "muted small", style: "margin:8px 0 0" }, `Possibly the same set-up as: ${maybe} (uncertain, kept separate)`) : null);
+            tile.after(box);
+          } });
+        grid.append(tile);
+      });
+    } else {
+      const groupOf = {};
+      sc.unique.forEach((g, k) => g.shot_ids.forEach((id) => { groupOf[id] = [g, k]; }));
+      Object.keys(groupOf).map(Number).sort((a, b) => a - b).forEach((id) => {
+        const [g, k] = groupOf[id];
+        const o = g.occurrences.find((x) => x.shot_id === id);
+        grid.append(shotTile(u, id, { cap: `#${id} · ${fmt(o.start)}`, color: GROUP_COLORS[k % GROUP_COLORS.length],
+          badge: g.occurrence_count > 1 ? g.unique_shot_id.split("-")[1] : "", title: `${g.unique_shot_id}${g.occurrence_count > 1 ? ` (repeated ×${g.occurrence_count})` : ""}`,
+          onclick: () => seek(o.start) }));
+      });
+    }
+    const stat = (k, v) => el("span", { class: "stat" }, `${k}: `, el("b", {}, String(v)));
+    const d = el("details", { class: "uscene", style: `--c:${colorFor(i)}` },
+      el("summary", {}, el("span", { class: "sname" }, `SCENE ${pad2(sc.scene_id)}`),
+        stat("Original Shots", sc.original_shots), stat("Unique Shots", sc.unique_shots),
+        stat("Repeated Shots", sc.repeated_shots), stat("Reduction", `${Math.round(sc.reduction * 100)}%`)),
+      grid);
+    if (state.uniqueOpen ? state.uniqueOpen.has(sc.scene_id) : i === 0) d.open = true;
+    d.addEventListener("toggle", () => {
+      state.uniqueOpen = state.uniqueOpen || new Set(u.scenes.slice(0, 1).map((x) => x.scene_id));
+      d.open ? state.uniqueOpen.add(sc.scene_id) : state.uniqueOpen.delete(sc.scene_id);
+    });
+    return d;
+  }));
+}
+$("#uniqModeUnique").addEventListener("click", () => { state.uniqueMode = "unique"; renderUnique(); });
+$("#uniqModeAll").addEventListener("click", () => { state.uniqueMode = "all"; renderUnique(); });
+
 // ------------------------------------------------------------------ exports
 $("#exportJson").addEventListener("click", () => { location.href = `/api/videos/${state.vid}/export.json`; });
 $("#exportClips").addEventListener("click", async () => {
@@ -283,7 +364,7 @@ async function correction(body) {
   try {
     const r = await post(`/api/videos/${state.vid}/corrections`, body);
     if (devOn()) return loadResult(state.vid);
-    state.result = r; renderResult(r);
+    state.result = r; renderResult(r); loadUnique(state.vid);
   } catch (e) { $("#editState").textContent = e.message; }
 }
 $("#splitBtn").addEventListener("click", () => correction({ op: "split", at: $("#player").currentTime }));
@@ -300,7 +381,7 @@ $("#gtBtn").addEventListener("click", async () => {
   if (who === null) return;
   try {
     const res = await post(`/api/videos/${state.vid}/ground-truth`, { annotator: who });
-    $("#editState").textContent = `Saved ${res.boundaries.length} boundaries → ${res.saved.split("/").slice(-2).join("/")}`;
+    $("#editState").textContent = `Saved ${res.boundaries.length} boundaries → ${res.saved.split(/[\\/]/).slice(-2).join("/")}. Add it to dev, val or test in ground_truth/splits.json to use it.`;
   } catch (e) { $("#editState").textContent = e.message; }
 });
 

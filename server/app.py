@@ -21,9 +21,10 @@ from sceneseen import grouping
 from sceneseen.config import load_config
 from sceneseen.corrections import CorrectionError, CorrectionStore, merge, split
 from sceneseen.export import export_clips, zip_files
-from sceneseen.ground_truth import VIDEO_EXTS, save_label
+from sceneseen.ground_truth import VIDEO_EXTS, provenance_from_corrections, save_label
 from sceneseen.media import VideoError, VideoInfo, ffmpeg_exe, probe, video_id_for
-from sceneseen.pipeline import STAGES, VideoCache, analyze, build_result, load_stage_outputs, public_result
+from sceneseen.pipeline import (STAGES, VideoCache, analyze, build_result, load_stage_outputs, public_result,
+                                unique_shots_for)
 
 from .jobs import Job, JobRunner
 
@@ -59,8 +60,10 @@ def _info(vid: str) -> VideoInfo:
 
 
 def _stage(vid: str) -> dict:
-    meta = _meta(vid)
-    return load_stage_outputs(CFG, probe(meta["path"]))
+    """Cached shots/features. Uses the stored video info, so it also works when the uploaded
+    file itself is temporarily unavailable (nothing is decoded when the cache is complete)."""
+    _meta(vid)
+    return load_stage_outputs(CFG, _info(vid))
 
 
 def _current_result(vid: str, gcfg=None) -> dict:
@@ -209,6 +212,15 @@ def regroup(vid: str, body: RegroupBody):
     return r
 
 
+@app.get("/api/videos/{vid}/unique-shots")
+def unique_shots(vid: str):
+    """Repeated-shot groups for the current scenes (post-processing; never changes scenes)."""
+    result = _current_result(vid)
+    rec = unique_shots_for(CFG, _info(vid), _stage(vid), result["scenes"])
+    rec["thumb_base"] = f"/api/videos/{vid}/thumbs/{result['debug']['feature_key']}/"
+    return rec
+
+
 # ---------------------------------------------------------------- routes: media
 
 @app.get("/api/videos/{vid}/media")
@@ -342,7 +354,8 @@ def save_ground_truth(vid: str, body: LabelBody):
         except OSError:
             shutil.copy2(meta["path"], target)
     notes = body.notes or "labelled in SceneSeen UI"
-    path = save_label(CFG.paths.ground_truth_dir, meta["name"], result["boundaries"], body.annotator, notes)
+    prov = provenance_from_corrections(CorrectionStore(_cache(vid).dir).load())
+    path = save_label(CFG.paths.ground_truth_dir, meta["name"], result["boundaries"], body.annotator, notes, prov)
     return {"saved": str(path), "boundaries": result["boundaries"]}
 
 

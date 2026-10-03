@@ -110,9 +110,17 @@ def test_split_is_deterministic_and_frozen(tmp_path):
     s1, s2 = make_split(stems), make_split(list(reversed(stems)))
     assert s1 == s2 and len(s1["test"]) == 2 and not set(s1["dev"]) & set(s1["test"])
     first = load_or_create_split(tmp_path, stems)
+    before = (tmp_path / "splits.json").read_bytes()
     again = load_or_create_split(tmp_path, stems + ["v_new"])
-    assert again["test"] == first["test"]          # test set never changes
-    assert "v_new" in again["dev"]                 # new videos go to dev
+    assert again["test"] == first["test"] and again["dev"] == first["dev"]
+    assert again["unassigned"] == ["v_new"]                      # never used until a human assigns a role
+    assert (tmp_path / "splits.json").read_bytes() == before     # file is never rewritten
+
+
+def test_split_rejects_video_in_two_roles(tmp_path):
+    (tmp_path / "splits.json").write_text(json.dumps({"dev": ["a"], "val": [], "test": ["a"]}), encoding="utf-8")
+    with pytest.raises(LabelError):
+        load_or_create_split(tmp_path, ["a"])
 
 
 # ---- cross-platform file names (macOS writes decomposed Unicode, Git/Windows/Linux composed)

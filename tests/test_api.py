@@ -100,6 +100,11 @@ def test_analyze_end_to_end_via_api(client, tiny_video):
     r = c.get(f"/api/videos/{vid}/result?debug=1").json()
     assert r["video"] == ARABIC_NAME and r["scene_count"] >= 1
     assert r["shot_count"] >= 2                      # the hard cut at 2 s is detected
+    uq = c.get(f"/api/videos/{vid}/unique-shots").json()          # post-processing endpoint
+    assert uq["summary"]["original_shots"] == r["shot_count"]
+    assert sorted(i for sc in uq["scenes"] for g in sc["unique"] for i in g["shot_ids"]) == list(range(r["shot_count"]))
+    again = c.get(f"/api/videos/{vid}/result").json()
+    assert again["boundaries"] == r["boundaries"]                 # unique shots never change the scenes
     exp = c.get(f"/api/videos/{vid}/export.json")
     assert exp.status_code == 200 and exp.json()["scene_count"] == r["scene_count"]
     assert "filename*=UTF-8''" in exp.headers["content-disposition"]   # Arabic name survives the header

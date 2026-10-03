@@ -3,6 +3,7 @@
   python -m sceneseen analyze VIDEO [--clips] [--out DIR]
   python -m sceneseen evaluate [--split dev|test|all]
   python -m sceneseen tune
+  python -m sceneseen train
   python -m sceneseen check-data
   python -m sceneseen serve [--port 8000]
 """
@@ -45,7 +46,16 @@ def cmd_analyze(args, cfg) -> int:
     for s in pub["scenes"]:
         print(f"  Scene {s['scene_id']:02d}  {_ts(s['start_seconds'])} → {_ts(s['end_seconds'])}  "
               f"({s['duration_seconds']:.1f}s)")
-    print(f"\nScene data: {jpath}")
+    from .media import probe as _probe
+    from .pipeline import load_stage_outputs, unique_shots_for
+
+    info = _probe(args.video)
+    uniq = unique_shots_for(cfg, info, load_stage_outputs(cfg, info), result["scenes"])
+    (out_dir / "unique_shots.json").write_text(json.dumps(uniq, indent=1), encoding="utf-8")
+    u = uniq["summary"]
+    print(f"\nUnique shots: {u['unique_shots']} of {u['original_shots']} "
+          f"({u['repeated_shots']} repeated, {u['reduction'] * 100:.0f}% reduction) -> {out_dir / 'unique_shots.json'}")
+    print(f"Scene data: {jpath}")
     print("Timings (s): " + ", ".join(f"{k}={v}" for k, v in t.items()))
     if args.debug:
         (out_dir / "debug.json").write_text(json.dumps(result, indent=1), encoding="utf-8")
@@ -107,6 +117,62 @@ def cmd_tune(args, cfg) -> int:
                                          f"from {cfg.paths.ground_truth_dir.name}/")
     print(f"\nWrote {path}. Evaluate ONCE on the test set with:\n"
           f"  python -m sceneseen --config {out} evaluate --split test")
+    return 0
+
+
+def cmd_train(args, cfg) -> int:
+    """Train the optional boundary classifier on DEV, validate on VAL, never touch TEST."""
+    from . import learning as L
+    from .benchmark import NoLabelsError, load_dataset
+    from .ground_truth import label_files, load_or_create_split, nfc
+
+    try:
+        dev = load_dataset(cfg, "dev")
+    except NoLabelsError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 2
+    try:
+        val = load_dataset(cfg, "val")
+    except NoLabelsError:
+        val = []
+    split = load_or_create_split(cfg.paths.ground_truth_dir, [nfc(p.stem) for p in label_files(cfg.paths.ground_truth_dir)])
+    L.assert_no_test_leak([it["stem"] for it in dev], split)
+    print(f"training videos (dev): {len(dev)} | validation videos (val): {len(val)} | "
+          f"final-test videos: {len(split['test'])} (not loaded)")
+    if not val:
+        print("WARNING: no validation videos; a model cannot be accepted without held-out validation.")
+    rep = L.run_experiment(dev, val, cfg.grouping, with_tuned=not args.no_tuned)
+    decision = L.decide(rep) if val else {"any_accepted": False, "methods": {}, "baseline": {}}
+    md = L.format_experiment(rep, decision) if val else "(no validation set)\n"
+    examples = [L.build_examples(it, cfg.grouping) for it in dev]
+    model, hp = L.train_model(examples)
+    accepted = bool(decision["methods"].get("C_logreg", {}).get("accepted", False))
+    model.meta = L.training_metadata(dev, examples, hp, cfg.grouping, {
+        "validation_videos": [it["stem"] for it in val],
+        "metrics": {"dev_leave_one_video_out": rep["summary"]["dev_loo"]["C_logreg"],
+                    "validation": rep["summary"]["val"]["C_logreg"],
+                    "current_rule_dev_leave_one_video_out": rep["summary"]["dev_loo"]["A_current_rule"],
+                    "current_rule_validation": rep["summary"]["val"]["A_current_rule"]},
+        "accepted": accepted,
+        "decision_rule": "better than the current rule on dev leave-one-video-out AND not worse on validation "
+                         "AND better on more videos than worse",
+    })
+    body = model.to_dict()
+    out = Path(args.out) / f"boundary_logreg_{body['artifact_hash']}.json"
+    model.save(out)
+    rdir = ROOT / "reports"
+    rdir.mkdir(exist_ok=True)
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    (rdir / f"learning_{stamp}.md").write_text(md, encoding="utf-8")
+    (rdir / f"learning_{stamp}.json").write_text(json.dumps({"report": rep, "decision": decision}, indent=1, default=str),
+                                                 encoding="utf-8")
+    print(md)
+    print(f"Model artifact: {out}  (hash {body['artifact_hash']}, ground-truth version {body['ground_truth_version']})")
+    if accepted:
+        print(f"ACCEPTED. To use it, set in a config file:\n  [boundary_model]\n  path = \"{out.relative_to(ROOT)}\"")
+    else:
+        print("NOT ACCEPTED: the learned model does not beat the current rule on held-out data. "
+              "SceneSeen keeps using the rule; the artifact is saved for the record only.")
     return 0
 
 
@@ -185,9 +251,12 @@ def main(argv=None) -> int:
     a.add_argument("--clips", action="store_true", help="also export one clip per scene")
     a.add_argument("--debug", action="store_true", help="also write shots/scores/decisions as debug.json")
     e = sub.add_parser("evaluate", help="score predictions against ground_truth/ labels")
-    e.add_argument("--split", choices=["dev", "test", "all"], default="dev")
+    e.add_argument("--split", choices=["dev", "val", "test", "all"], default="dev")
     t = sub.add_parser("tune", help="grid-search grouping thresholds on the dev split")
     t.add_argument("--out", default=str(ROOT / "config" / "tuned.toml"), help="where to write the tuned [grouping]")
+    tr = sub.add_parser("train", help="train the optional boundary classifier (dev -> validate on val; never test)")
+    tr.add_argument("--out", default=str(ROOT / "models"), help="directory for the versioned model artifact")
+    tr.add_argument("--no-tuned", action="store_true", help="skip the (slow) tuned-rule comparison")
     c = sub.add_parser("check-data", help="check that every ground-truth label has its video in data/videos/")
     c.add_argument("--verify", action="store_true", help="also compare SHA-256 with ground_truth/videos_manifest.json")
     s = sub.add_parser("serve", help="run the web app")
@@ -197,7 +266,7 @@ def main(argv=None) -> int:
     _setup_logging(args.verbose)
     cfg = load_config(*args.config)
     return {"analyze": cmd_analyze, "evaluate": cmd_evaluate, "tune": cmd_tune, "serve": cmd_serve,
-            "check-data": cmd_check_data}[args.cmd](args, cfg)
+            "check-data": cmd_check_data, "train": cmd_train}[args.cmd](args, cfg)
 
 
 if __name__ == "__main__":

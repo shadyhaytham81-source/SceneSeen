@@ -99,10 +99,33 @@ def load_stage_outputs(cfg: Config, info: VideoInfo, progress: Progress = _noop)
             "thumbs_dir": thumbs_dir, "feat_key": feat_key, "cache": cache}
 
 
-def build_result(info: VideoInfo, stage: dict, gcfg: GroupingConfig, timings: dict) -> dict:
+def apply_boundary_model(model, info: VideoInfo, stage: dict, gcfg: GroupingConfig, g: dict) -> dict:
+    """Replace the rule's boundary decisions with a trained classifier's (cut scores are kept for
+    the developer view). Only called when a model is explicitly configured and loaded."""
+    from .learning import boundary_features
+
+    shots = stage["shots"]
+    X = boundary_features(shots, stage["features"]["clip"], stage["features"]["color"], gcfg,
+                          stage["shots_rec"].get("transition_probs"), info.fps)
+    times = np.array([s.start for s in shots[1:]])
+    prob = model.predict_proba(X) if len(X) else np.zeros(0)
+    bounds = model.boundaries(times, X, info.duration)
+    chosen = set(bounds)
+    for c, p in zip(g["cuts"], prob):
+        c["rule_decision"] = c["decision"]
+        c["probability"] = round(float(p), 4)
+        c["decision"] = "boundary" if round(c["time"], 3) in chosen else (
+            "min_duration" if p >= model.threshold else "below_abs")
+    return {**g, "boundaries": bounds, "scenes": grouping.boundaries_to_scenes(bounds, info.duration, shots)}
+
+
+def build_result(info: VideoInfo, stage: dict, gcfg: GroupingConfig, timings: dict, model=None) -> dict:
+    """`model`: optional learning.BoundaryModel. None (default) = hand-designed rule."""
     t = time.perf_counter()
     shots = stage["shots"]
     g = grouping.group_shots(shots, stage["features"]["clip"], stage["features"]["color"], info.duration, gcfg)
+    if model is not None and len(shots) > 1:
+        g = apply_boundary_model(model, info, stage, gcfg, g)
     timings = {**timings, "grouping": round(time.perf_counter() - t, 4)}
     return {
         "video": Path(info.path).name,
@@ -123,6 +146,7 @@ def build_result(info: VideoInfo, stage: dict, gcfg: GroupingConfig, timings: di
             "timings": timings,
             "feature_key": stage["feat_key"],
             "baseline_all_shots_count": len(shots),
+            "boundary_method": "rule" if model is None else f"learned:{model.to_dict()['artifact_hash']}",
         },
     }
 
@@ -136,7 +160,11 @@ def analyze(path: str | Path, cfg: Config, progress: Progress = _noop, gcfg: Gro
     progress("reading", 1.0)
     stage = load_stage_outputs(cfg, info, progress)
     progress("results", 0.0)
-    result = build_result(info, stage, gcfg or cfg.grouping, stage["timings"])
+    from .config import ROOT
+    from .learning import load_model_or_none
+
+    model = load_model_or_none(cfg.boundary_model.path, ROOT)   # None unless explicitly configured
+    result = build_result(info, stage, gcfg or cfg.grouping, stage["timings"], model)
     result["debug"]["timings"]["total"] = round(time.perf_counter() - t0, 2)
     stage["cache"].write_json("result.json", result)
     progress("results", 1.0)
@@ -154,3 +182,11 @@ def public_result(result: dict) -> dict:
     if result.get("corrected"):
         out["corrected"] = True
     return out
+
+
+def unique_shots_for(cfg: Config, info: VideoInfo, stage: dict, scenes: list[dict]) -> dict:
+    """Repeated-shot grouping for the given scenes (downstream of segmentation; cached)."""
+    from .unique import unique_shots_cached
+
+    return unique_shots_cached(stage["cache"].dir, stage["feat_key"], stage["thumbs_dir"], stage["shots"], scenes,
+                               stage["features"], cfg.unique_shots)

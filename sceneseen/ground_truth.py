@@ -25,7 +25,7 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 VIDEO_EXTS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v"}
-NOT_LABELS = {"splits.json", "videos_manifest.json"}
+NOT_LABELS = {"splits.json", "videos_manifest.json", "provenance.json"}
 
 
 def label_files(gt_dir: Path) -> list[Path]:
@@ -62,13 +62,31 @@ def load_label(path: Path, duration: float | None = None) -> dict:
         raise LabelError(f"{path}: {e}") from e
 
 
-def save_label(gt_dir: Path, video_name: str, boundaries: list[float], annotator: str = "", notes: str = "") -> Path:
+def provenance_from_corrections(corrections: dict | None) -> dict:
+    """How a label was made, from the stored correction log. 'blank' = the labeller removed the
+    model's prediction first (independent label); 'edited_predictions' = the model's prediction
+    was corrected (may be anchored to the model); the full log is kept so every merge/split can
+    later be turned into a training example (learning.correction_examples)."""
+    if not corrections:
+        return {"label_method": "manual_file"}
+    ops = [o["op"] for o in corrections.get("log", [])]
+    return {
+        "label_method": "blank" if "clear" in ops else "edited_predictions",
+        "operations": {k: ops.count(k) for k in ("clear", "split", "merge", "confirm")},
+        "predicted_boundaries": corrections.get("predicted_boundaries", []),
+        "corrections_log": corrections.get("log", []),
+    }
+
+
+def save_label(gt_dir: Path, video_name: str, boundaries: list[float], annotator: str = "", notes: str = "",
+               provenance: dict | None = None) -> Path:
     gt_dir.mkdir(parents=True, exist_ok=True)
     data = validate_label({
         "video": video_name,
         "boundaries": [round(float(x), 3) for x in sorted(boundaries)],
         "annotator": annotator,
         "notes": notes,
+        **({"provenance": provenance} if provenance else {}),
     })
     path = gt_dir / f"{Path(video_name).stem}.json"
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
@@ -135,22 +153,35 @@ def make_split(stems: list[str], test_fraction: float = 0.3, seed: int = 13) -> 
     shuffled = stems[:]
     rng.shuffle(shuffled)
     n_test = max(1, round(len(stems) * test_fraction)) if len(stems) >= 2 else 0
-    return {"dev": sorted(shuffled[n_test:]), "test": sorted(shuffled[:n_test]), "seed": seed}
+    return {"dev": sorted(shuffled[n_test:]), "val": [], "test": sorted(shuffled[:n_test]), "seed": seed}
+
+
+ROLES = ("dev", "val", "test")
 
 
 def load_or_create_split(gt_dir: Path, stems: list[str]) -> dict:
-    """The split is frozen once written: new videos are appended to dev, never moved into test silently."""
+    """Dataset roles: dev (training / development), val (held-out validation), test (final test).
+
+    The file is never rewritten once it exists. Labels that are not listed in any role are
+    returned under "unassigned" and are NOT used by evaluate / tune / train until a human
+    assigns them in ground_truth/splits.json; nothing can leak into training or testing by
+    accident. All names are compared in Unicode NFC."""
     path = gt_dir / "splits.json"
     if path.exists():
         split = json.loads(path.read_text(encoding="utf-8"))
-        known = {nfc(s) for s in split.get("dev", []) + split.get("test", [])}
-        new = [s for s in stems if nfc(s) not in known]
-        if new:
-            split["dev"] = sorted(split.get("dev", []) + new)
-            path.write_text(json.dumps(split, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        for k in ("dev", "test"):  # compare in NFC from here on (file itself is left as written)
-            split[k] = [nfc(s) for s in split.get(k, [])]
-        return split
-    split = make_split(stems)
-    path.write_text(json.dumps(split, indent=2) + "\n", encoding="utf-8")
+    else:
+        split = make_split(stems)
+        path.write_text(json.dumps(split, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    for k in ROLES:
+        split[k] = [nfc(s) for s in split.get(k, [])]
+    seen: dict[str, str] = {}
+    for k in ROLES:
+        for s_ in split[k]:
+            if s_ in seen:
+                raise LabelError(f"splits.json lists '{s_}' in both '{seen[s_]}' and '{k}'")
+            seen[s_] = k
+    split["unassigned"] = sorted(nfc(s_) for s_ in stems if nfc(s_) not in seen)
+    if split["unassigned"]:
+        log.warning("%d labelled video(s) have no role in splits.json and are ignored: %s",
+                    len(split["unassigned"]), ", ".join(x[:30] for x in split["unassigned"]))
     return split

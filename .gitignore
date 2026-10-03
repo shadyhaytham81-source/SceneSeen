@@ -1,5 +1,7 @@
 # ---------- Python / tooling
-.venv/
+.venv
+.venv*/
+.venv*
 venv/
 env/
 __pycache__/
@@ -32,8 +34,8 @@ data/*
 # ---------- generated reports
 # Evaluation tables/JSON are small and part of the project record -> tracked.
 # Error strips are frames from copyrighted films -> never committed.
-reports/errors/*.jpg
-reports/errors/*.png
+reports/**/*.jpg
+reports/**/*.png
 
 # ---------- media anywhere in the tree, as a safety net
 *.mp4
