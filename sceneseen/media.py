@@ -64,6 +64,20 @@ _FPS = re.compile(r"(\d+(?:\.\d+)?) (?:fps|tbr)")
 _ROT = re.compile(r"rotation of (-?\d+(?:\.\d+)?) degrees")
 
 
+def relocated(stored_path: str | Path, *folders: Path) -> Path:
+    """Caches record absolute paths. If the project folder was moved or copied, the stored path
+    no longer exists: look for the same file name in the given folders (uploads/videos) instead.
+    Returns the stored path unchanged when it exists or no replacement is found."""
+    p = Path(stored_path)
+    if p.exists():
+        return p
+    for folder in folders:
+        q = Path(folder) / p.name
+        if q.exists():
+            return q
+    return p
+
+
 def is_dataless(path: str | Path) -> bool:
     """True for macOS iCloud placeholders ("Optimize Mac Storage"): the bytes are not on disk
     and reading the file blocks until iCloud downloads it."""

@@ -22,7 +22,7 @@ from sceneseen.config import load_config
 from sceneseen.corrections import CorrectionError, CorrectionStore, merge, split
 from sceneseen.export import export_clips, zip_files
 from sceneseen.ground_truth import VIDEO_EXTS, provenance_from_corrections, save_label
-from sceneseen.media import VideoError, VideoInfo, ffmpeg_exe, probe, video_id_for
+from sceneseen.media import VideoError, VideoInfo, ffmpeg_exe, probe, relocated, video_id_for
 from sceneseen.pipeline import (STAGES, VideoCache, analyze, build_result, load_stage_outputs, public_result,
                                 unique_shots_for)
 
@@ -52,11 +52,17 @@ def _meta(vid: str) -> dict:
     meta = _cache(vid).read_json("upload.json")
     if not meta:
         raise HTTPException(404, "unknown video")
+    meta["path"] = str(relocated(meta["path"], CFG.paths.uploads_dir))
     return meta
 
 
 def _info(vid: str) -> VideoInfo:
-    return VideoInfo(**_cache(vid).read_json("info.json"))
+    """Stored video info; its path follows the project if the folder was moved."""
+    data = _cache(vid).read_json("info.json")
+    up = _cache(vid).read_json("upload.json")
+    src = up["path"] if up else data["path"]
+    data["path"] = str(relocated(src, CFG.paths.uploads_dir))
+    return VideoInfo(**data)
 
 
 def _stage(vid: str) -> dict:

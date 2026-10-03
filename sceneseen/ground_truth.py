@@ -113,13 +113,14 @@ def find_video(videos_dir: Path, name: str) -> Path:
 
 def _local_upload_copy(name: str, cache_dir: Path | None) -> Path | None:
     """An uploaded copy of the same file (recorded in cache/<id>/upload.json) that is on disk."""
-    from .media import is_dataless
+    from .media import is_dataless, relocated
 
     if cache_dir is None:
         return None
     for up in cache_dir.glob("*/upload.json"):
         meta = json.loads(up.read_text(encoding="utf-8"))
-        p = Path(meta.get("path", ""))
+        # default layout: data/cache next to data/uploads (follows the project if it was moved)
+        p = relocated(meta.get("path", ""), cache_dir.parent / "uploads")
         if nfc(meta.get("name", "")) == nfc(name) and p.exists() and not is_dataless(p):
             return p
     return None

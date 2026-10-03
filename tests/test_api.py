@@ -108,3 +108,34 @@ def test_analyze_end_to_end_via_api(client, tiny_video):
     exp = c.get(f"/api/videos/{vid}/export.json")
     assert exp.status_code == 200 and exp.json()["scene_count"] == r["scene_count"]
     assert "filename*=UTF-8''" in exp.headers["content-disposition"]   # Arabic name survives the header
+
+
+def test_uploads_survive_moving_the_project(client, tiny_video, tmp_path):
+    """Caches store absolute paths; after the project folder is moved the stored path is stale.
+    The app must find the upload again by file name in the configured uploads folder."""
+    import json
+    import shutil
+
+    c, app_module = client
+    with open(tiny_video, "rb") as f:
+        vid = c.post("/api/upload", files={"file": (ARABIC_NAME, f, "video/mp4")}).json()["video_id"]
+    cache = app_module.CFG.paths.cache_dir / vid
+    meta = json.loads((cache / "upload.json").read_text(encoding="utf-8"))
+    real = meta["path"]
+    old_home = tmp_path / "old location" / "data" / "uploads"
+    meta["path"] = str(old_home / real.replace("\\", "/").split("/")[-1])     # pretend it was recorded elsewhere
+    (cache / "upload.json").write_text(json.dumps(meta), encoding="utf-8")
+    assert app_module._meta(vid)["path"] == real                              # resolved back by file name
+    shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_relocated_helper(tmp_path):
+    from sceneseen.media import relocated
+
+    (tmp_path / "uploads").mkdir()
+    (tmp_path / "uploads" / "abc.mp4").write_bytes(b"x")
+    assert relocated("/gone/elsewhere/abc.mp4", tmp_path / "uploads") == tmp_path / "uploads" / "abc.mp4"
+    from pathlib import Path
+
+    assert relocated("/gone/elsewhere/missing.mp4", tmp_path / "uploads") == Path("/gone/elsewhere/missing.mp4")
+    assert relocated(tmp_path / "uploads" / "abc.mp4") == tmp_path / "uploads" / "abc.mp4"
