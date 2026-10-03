@@ -66,7 +66,10 @@ real films: about 0.6.**
 What works well: no dialogue scene was split in any of the 6 videos. No errors at fades, dissolves or fast cuts.
 Scene counts are right on average.
 
-## Added on 2026-10-03 (branch `feature/unique-shots-and-learning`)
+## Added on 2026-10-03 (merged into `main`)
+Default behaviour: **rule-based segmentation** + **Unique Shots**. The learned boundary classifier is kept but
+**disabled** (`[boundary_model] path = ""`); it is only used if a model file is explicitly configured.
+
 - **Unique Shots:** inside each scene, shots from the same camera set-up are grouped under one representative
   (nothing deleted). Similarity = CLIP multi-frame cosine + colour + perceptual hash, calibrated on 177 labelled
   shot pairs. 1,132 shots → 664 unique (41 %) on the 9 labelled videos. It is post-processing only, with zero
