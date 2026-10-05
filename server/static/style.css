@@ -311,3 +311,35 @@ body:not(.devmode) .dev-only { display: none !important; }
 .ccard .cbody > .rev { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .ccard .cbody > .rev button { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ccard .cbody > .rev .relabel, .ccard .cbody > .rev .revnote { grid-column: 1 / -1; }
+
+/* human product identification */
+.idrow { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-top: 4px; }
+.idrow .pbadge { margin-top: 0; }
+.idbtn { font: inherit; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid #55555f; background: transparent; color: var(--text); cursor: pointer; }
+.idbtn:hover { border-color: var(--accent); color: var(--accent); }
+.idcols { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
+.idk { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 12px 0 4px; }
+.idobj .idk:first-child, .idpick .idk:first-child { margin-top: 0; }
+.idv { font-size: 14px; }
+.idv.big { font-size: 20px; font-weight: 650; }
+.idcrops { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.idcrops img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: #000; display: block; }
+.picklist { margin-top: 6px; max-height: 250px; overflow: auto; display: flex; flex-direction: column; gap: 4px; }
+.pick { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; font: inherit; color: inherit; background: var(--bg3); border: 1px solid transparent; border-radius: 8px; padding: 5px 8px; cursor: pointer; }
+.pick:hover, .pick:focus-visible { border-color: var(--accent); outline: none; }
+.pick .pimg { width: 44px; height: 44px; background-color: #fff; background-size: contain; }
+.pick.slim { grid-template-columns: minmax(0, 1fr) auto; padding: 7px 10px; }
+.pick.new { color: var(--accent); }
+.picked { display: flex; align-items: center; gap: 10px; background: var(--bg3); border: 1px solid var(--accent); border-radius: 8px; padding: 7px 10px; }
+.picked .pimg { width: 44px; height: 44px; flex: none; background-color: #fff; background-size: contain; }
+.picked .pinfo { flex: 1; }
+.picked > b { flex: 1; }
+.idactions { margin-top: 14px; }
+.nic { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.nic > summary { cursor: pointer; font-size: 14px; color: var(--accent); }
+.nicform { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.nicform .filelab { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; }
+@media (max-width: 760px) { .idcols { grid-template-columns: 1fr; } }
+.dlg input[type=checkbox] { width: auto; }
+.dlg .switch { flex: none; white-space: nowrap; }
+.idpick .row > input[type=search] { flex: 1; min-width: 0; width: auto; }

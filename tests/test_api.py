@@ -4,6 +4,7 @@ Every path (uploads, cache, exports, ground truth, videos) is redirected to a te
 so these tests never touch data/ or ground_truth/.
 """
 import importlib
+import json
 import subprocess
 
 import pytest
@@ -314,8 +315,8 @@ def test_catalog_api_crud_images_and_unicode(client):
     v = c.post(f"/api/catalog/products/{pid}/variants", json={"name": "Black", "color": "black"}).json()
     assert c.delete(f"/api/catalog/variants/{v['id']}").json() == {"deleted": True}
     assert c.delete(f"/api/catalog/images/{img['id']}").json() == {"deleted": True}
-    st = c.get("/api/catalog/status").json()
-    assert st["products"] == 1 and st["images_pending"] == 1 and st["embedder_loaded"] is False
+    assert c.get("/api/catalog/status").status_code in (404, 405)           # the matcher's endpoints are gone
+    assert c.post("/api/catalog/embed").status_code in (404, 405)
     assert c.patch(f"/api/catalog/products/{pid}", json={"archived": True}).json()["archived"] is True
     assert c.get("/api/catalog/products").json()["total"] == 0
     assert c.get("/api/catalog/products", params={"archived": True}).json()["total"] == 1
@@ -349,109 +350,119 @@ def _wait(c, job):
 
 
 @pytest.mark.slow
-def test_products_end_to_end_via_api(client, tiny_video, monkeypatch):
-    """Acceptance flow: brand -> products + images -> analysed video -> objects -> match -> confirm /
-    change / no match -> final output -> reload persists -> cached and fast."""
+def test_human_identification_end_to_end_via_api(client, tiny_video, monkeypatch):
+    """Video -> scenes -> unique shots -> commercial objects -> a PERSON identifies the product ->
+    confirmed scene products. No embedding model, no matcher, no product confidence anywhere."""
     import time
 
-    import numpy as np
-    from PIL import Image
-
     from sceneseen.commercial import analysis as commercial_analysis
-    from sceneseen.commercial.frames import load_rgb
 
-    from .fakes import FakeEmbedder, jpeg, pattern
+    from .fakes import jpeg, pattern
+
+    from sceneseen.experimental.matching import embedder, matcher
 
     c, app_module = client
+    ran = []
+    monkeypatch.setattr(matcher, "match_video", lambda *a, **k: ran.append("match_video"))
+    monkeypatch.setattr(matcher, "rank", lambda *a, **k: ran.append("rank"))
+    monkeypatch.setattr(embedder, "get_embedder", lambda *a, **k: ran.append("get_embedder"))
+    monkeypatch.setattr(embedder.Embedder, "load", lambda self: ran.append("load"))
     vid = _analysed(c, tiny_video)
     scenes_before = c.get(f"/api/videos/{vid}/result").json()["scenes"]
     monkeypatch.setattr(commercial_analysis, "get_detector", lambda *a, **k: _PhoneEverywhere())
-    fake = FakeEmbedder()
-    monkeypatch.setattr(app_module, "_embedder", lambda: fake)
     if c.get(f"/api/videos/{vid}/commercial").json()["status"] != "ready":
         assert _wait(c, c.post(f"/api/videos/{vid}/commercial/analyze").json())["status"] == "done"
     com = c.get(f"/api/videos/{vid}/commercial").json()
     objs = [x for sc in com["scenes"] for x in sc["candidates"] if x["displayed"]]
-    assert objs
-
-    before = c.get(f"/api/videos/{vid}/products").json()                    # nothing matched yet, objects still listed
-    assert before["matching"]["status"] == "not_run" and before["status_counts"]["not_matched"] == len(objs)
-
-    # catalogue: the phone that is really in the video (cut from its frame) + 6 other phones + 1 sofa
-    brand = c.post("/api/catalog/brands", json={"name": "Delta Tech"}).json()["id"]
     x = objs[0]
-    frames = app_module._cache(vid).path("commercial") / f"frames_{app_module.CFG.commercial.frame_long_side}"
-    frame = load_rgb(next(frames.glob(f"shot_{x['best']['shot_id']:04d}_*.jpg")))
-    h, w = frame.shape[:2]
-    b = x["best"]["box"]
-    real = np.ascontiguousarray(frame[int(b[1] * h):int(b[3] * h), int(b[0] * w):int(b[2] * w)])
-    real = np.asarray(Image.fromarray(real).resize((240, 240)))
-    ids = {}
-    for name, img in [("Real phone", real)] + [(f"Other phone {i}", pattern(40 + i)) for i in range(6)]:
-        pid = c.post("/api/catalog/products", json={"brand_id": brand, "name": name, "category": "electronics",
-                                                    "object_type": "smartphone"}).json()["id"]
-        assert c.post(f"/api/catalog/products/{pid}/images", files=[("files", (f"{name}.jpg", jpeg(img), "image/jpeg"))]).status_code == 200
-        ids[name] = pid
-    assert c.get("/api/catalog/status").json()["images_pending"] == 7
+    url = f"/api/videos/{vid}/products/identify"
 
-    job = _wait(c, c.post(f"/api/videos/{vid}/products/match").json())
-    assert job["status"] == "done", job
-    embedded_images = fake.images
-    assert c.get("/api/catalog/status").json()["images_pending"] == 0
+    # nothing is guessed: every object starts unidentified, with only the two detection signals
+    out = c.get(f"/api/videos/{vid}/products").json()
+    flat = [o for sc in out["scenes"] for o in sc["objects"]]
+    assert len(flat) == len(objs) and all(o["status"] == "unidentified" and o["identification"] is None for o in flat)
+    text = json.dumps(out)
+    for banned in ("match_confidence", "candidates", "match_state", "suggestion", "embedder"):
+        assert banned not in text, banned
+    assert 0 < flat[0]["detection_confidence"] <= 1 and flat[0]["commercial_relevance_level"] in ("High", "Medium", "Low")
+    for gone in ("/products/match", "/products/verify"):
+        assert c.post(f"/api/videos/{vid}{gone}", json={}).status_code in (404, 405)
 
+    # catalogue (Arabic brand) and the filtered search a person uses
+    brand = c.post("/api/catalog/brands", json={"name": "دلتا تك"}).json()["id"]
+    phone = c.post("/api/catalog/products", json={"brand_id": brand, "name": "هاتف دلتا ١٢", "category": "electronics",
+                                                  "object_type": "smartphone", "sku": "DT-12"}).json()
+    variant = c.post(f"/api/catalog/products/{phone['id']}/variants", json={"name": "أسود 256", "sku": "DT-12-BLK"}).json()
+    sofa = c.post("/api/catalog/products", json={"brand_id": brand, "name": "Sofa", "category": "furniture",
+                                                 "object_type": "sofa"}).json()
+    found = c.get("/api/catalog/products", params={"compatible_with": x["type_id"]}).json()
+    assert [p["id"] for p in found["items"]] == [phone["id"]]                       # the sofa is filtered out
+    assert c.get("/api/catalog/products", params={"q": "dt-12-blk"}).json()["items"][0]["id"] == phone["id"]
+    assert c.get("/api/catalog/products", params={"compatible_with": "nonsense"}).status_code == 400
+    assert c.get("/api/catalog/brands", params={"q": "دلتا", "compatible_with": x["type_id"]}).json()["brands"][0]["product_count"] == 1
+
+    # rules
+    assert c.post(url, json={"key": x["key"], "brand_id": brand}).status_code == 400                        # who?
+    assert c.post(url, json={"key": "nope", "brand_id": brand, "actor": "t"}).status_code == 404
+    assert c.post(url, json={"key": x["key"], "product_id": 99999, "actor": "t"}).status_code == 404
+    assert c.post(url, json={"key": x["key"], "actor": "t"}).status_code == 400                             # nothing chosen
+    assert c.post(url, json={"key": x["key"], "actor": "t", "status": "no_product", "brand_id": brand}).status_code == 400
+
+    # brand only -> exact product -> variant -> different product: every step is kept in the history
+    r = c.post(url, json={"key": x["key"], "brand_id": brand, "actor": "shady"}).json()["identification"]
+    assert r["status"] == "brand_identified" and r["brand"]["name"] == "دلتا تك" and r["product"] is None and r["source"] == "human"
+    r = c.post(url, json={"key": x["key"], "product_id": phone["id"], "actor": "shady", "confirm": False}).json()["identification"]
+    assert r["status"] == "product_identified"
+    r = c.post(url, json={"key": x["key"], "product_id": phone["id"], "variant_id": variant["id"], "actor": "mona",
+                          "notes": "شاشة مكسورة"}).json()["identification"]
+    assert r["status"] == "confirmed" and r["variant"]["name"] == "أسود 256" and r["notes"] == "شاشة مكسورة"
+
+    # product not in the catalogue: create it (with an image) and link it straight away
+    new = c.post("/api/catalog/products", json={"brand_id": brand, "name": "Delta Fold", "category": "electronics",
+                                                "object_type": "smartphone"}).json()
+    assert c.post(f"/api/catalog/products/{new['id']}/images", files=[("files", ("f.jpg", jpeg(pattern(3)), "image/jpeg"))]).status_code == 200
+    r = c.post(url, json={"key": x["key"], "product_id": new["id"], "actor": "mona"}).json()["identification"]
+    assert r["product"]["name"] == "Delta Fold" and r["variant"] is None and r["product"]["image"]
+
+    # reload: persisted (a new database handle is what a server restart does); other objects did not inherit it
+    monkeypatch.setattr(app_module, "_DB", None)
     t = time.perf_counter()
     out = c.get(f"/api/videos/{vid}/products").json()
-    assert time.perf_counter() - t < 2.0 and fake.images == embedded_images      # cached: fast, no model call
-    assert out["matching"]["status"] == "ready" and out["matching"]["summary"]["catalogue_products"] == 7
-    obj = next(o for sc in out["scenes"] for o in sc["objects"] if o["key"] == x["key"])
-    assert obj["candidates"][0]["product"]["name"] == "Real phone"               # ranked first
-    assert obj["status"] in ("high_confidence_candidate", "needs_review")        # honest state, never auto-confirmed
-    assert obj["verification_status"] == "unverified" and obj["product"] is None
-    for f in ("detection_confidence", "commercial_relevance", "match_confidence"):
-        assert 0 <= obj[f] <= 1
-
-    # human decisions
-    url = f"/api/videos/{vid}/products/verify"
-    assert c.post(url, json={"key": x["key"], "action": "confirm", "product_id": ids["Real phone"]}).status_code == 400   # who?
-    assert c.post(url, json={"key": "nope", "action": "no_match", "actor": "t"}).status_code == 404
-    assert c.post(url, json={"key": x["key"], "action": "confirm", "product_id": 99999, "actor": "t"}).status_code == 400
-    r = c.post(url, json={"key": x["key"], "action": "confirm", "product_id": ids["Real phone"], "actor": "shady"}).json()
-    assert r["verification"]["status"] == "confirmed" and r["verification"]["suggestion_rank"] == 1
-    assert r["verification"]["models"]["embedder"] == fake.key and r["verification"]["models"]["calibration"]
-    r = c.post(url, json={"key": x["key"], "action": "confirm", "product_id": ids["Other phone 2"], "actor": "mona",
-                          "source": "search"}).json()
-    assert r["verification"]["product"]["name"] == "Other phone 2"
-
-    # reload: decisions persist (new database handle = what a server restart does)
-    monkeypatch.setattr(app_module, "_DB", None)
-    out = c.get(f"/api/videos/{vid}/products").json()
-    obj = next(o for sc in out["scenes"] for o in sc["objects"] if o["key"] == x["key"])
-    assert obj["status"] == "confirmed" and obj["product"]["name"] == "Other phone 2" and obj["verification"]["decided_by"] == "mona"
-    assert obj["match_confidence"] is not None and obj["detection_confidence"] == x["detection_confidence"]   # signals kept
+    assert time.perf_counter() - t < 2.0
+    flat = [o for sc in out["scenes"] for o in sc["objects"]]
+    mine = next(o for o in flat if o["key"] == x["key"])
+    assert mine["status"] == "confirmed" and mine["identification"]["identified_by"] == "mona"
+    assert mine["detection_confidence"] == x["detection_confidence"]
+    assert all(o["status"] == "unidentified" for o in flat if o["key"] != x["key"])       # same label elsewhere: untouched
+    assert len(mine["occurrences"]) == x["seen_count"]                                    # one identification, every occurrence
     hist = c.get(f"/api/videos/{vid}/products/history", params={"key": x["key"]}).json()["events"]
-    assert [e["action"] for e in hist] == ["change", "confirm"] and hist[0]["previous_product_id"] == ids["Real phone"]
+    assert [e["action"] for e in hist] == ["change", "change", "change", "identify"]
+    assert hist[0]["before"]["product"] == "هاتف دلتا ١٢" and hist[0]["after"]["product"] == "Delta Fold"
+    assert hist[-1]["after"]["status"] == "brand_identified" and hist[-1]["before"] is None
+
     exp = c.get(f"/api/videos/{vid}/products/export").json()
-    row = next(o for sc in exp["scenes"] for o in sc["objects"] if o["product"])
-    assert row["product"] == "Other phone 2" and row["brand"] == "Delta Tech" and row["verified_by"] == "mona"
-    assert exp["video"] == ARABIC_NAME and "start_seconds" in exp["scenes"][0]
+    row = next(o for sc in exp["scenes"] for o in sc["objects"] if o["object_id"] == x["key"])
+    assert (row["brand"], row["product"], row["status"], row["source"], row["identified_by"]) == ("دلتا تك", "Delta Fold", "confirmed", "human", "mona")
+    assert exp["identification_source"] == "human" and exp["video"] == ARABIC_NAME and "match_confidence" not in json.dumps(exp)
 
-    # a confirmed product cannot silently disappear
-    assert c.delete(f"/api/catalog/products/{ids['Other phone 2']}").json()["archived"] is True
-    r = c.post(url, json={"key": x["key"], "action": "no_match", "actor": "shady"}).json()
-    assert r["verification"]["status"] == "no_match"
+    # the other statuses, and removing an identification
+    for st in ("unknown_product", "no_product", "not_commercial"):
+        r = c.post(url, json={"key": x["key"], "status": st, "actor": "shady"}).json()["identification"]
+        assert r["status"] == st and r["brand"] is None and r["product"] is None
+    assert c.post(url, json={"key": x["key"], "clear": True, "actor": "shady"}).json()["identification"] is None
     out = c.get(f"/api/videos/{vid}/products").json()
-    assert next(o for sc in out["scenes"] for o in sc["objects"] if o["key"] == x["key"])["status"] == "no_match_confirmed"
-    assert c.post(url, json={"key": x["key"], "action": "clear", "actor": "shady"}).json()["verification"] is None
+    assert next(o for sc in out["scenes"] for o in sc["objects"] if o["key"] == x["key"])["status"] == "unidentified"
+    assert c.get(f"/api/videos/{vid}/products/history", params={"key": x["key"]}).json()["events"][0]["action"] == "clear"
+    assert c.delete(f"/api/catalog/products/{sofa['id']}").json()["deleted"] is True
 
-    # Phase 1 is untouched by all of this
-    assert c.get(f"/api/videos/{vid}/result").json()["scenes"] == scenes_before
+    # the experimental matcher was never run by any of this (it would have exploded, see the top of the test)
+    assert not ran
+    assert c.get(f"/api/videos/{vid}/result").json()["scenes"] == scenes_before           # Phase 1 untouched
 
 
 @pytest.mark.slow
-def test_matching_failures_never_break_objects_or_scenes(client, tiny_video, monkeypatch):
+def test_catalogue_failure_never_breaks_objects_or_scenes(client, tiny_video, monkeypatch):
     from sceneseen.commercial import analysis as commercial_analysis
-
-    from .fakes import FakeEmbedder
 
     c, app_module = client
     vid = _analysed(c, tiny_video)
@@ -459,32 +470,14 @@ def test_matching_failures_never_break_objects_or_scenes(client, tiny_video, mon
     if c.get(f"/api/videos/{vid}/commercial").json()["status"] != "ready":
         assert _wait(c, c.post(f"/api/videos/{vid}/commercial/analyze").json())["status"] == "done"
     n = sum(len(sc["candidates"]) for sc in c.get(f"/api/videos/{vid}/commercial").json()["scenes"])
-
-    # 1. embedding model cannot be loaded (download failed): job reports it, objects still listed, retry possible
-    monkeypatch.setattr(app_module, "_embedder", lambda: FakeEmbedder("fake:other:v9", fail=True))
-    job = _wait(c, c.post(f"/api/videos/{vid}/products/match").json())
-    assert job["status"] == "error" and "offline" in job["error"]
-    out = c.get(f"/api/videos/{vid}/products")
-    assert out.status_code == 200 and sum(len(sc["objects"]) for sc in out.json()["scenes"]) >= 1
-    assert out.json()["matching"]["status"] in ("not_run", "unavailable")
-    monkeypatch.setattr(app_module, "_embedder", lambda: FakeEmbedder("fake:other:v9"))
-    assert _wait(c, c.post(f"/api/videos/{vid}/products/match").json())["status"] == "done"       # retry works
-
-    # 2. catalogue database unavailable: objects come back as generic, commercial + scenes untouched
     monkeypatch.setattr(app_module, "_DB", None)
     monkeypatch.setenv("SCENESEEN_DATABASE_URL", "sqlite:////nonexistent-folder/deeper/catalog.db")
-    out = c.get(f"/api/videos/{vid}/products").json()
-    assert out["matching"]["status"] == "unavailable" and out["catalog"] is None
-    assert all(o["status"] == "not_matched" and o["product"] is None for sc in out["scenes"] for o in sc["objects"])
+    out = c.get(f"/api/videos/{vid}/products")
+    assert out.status_code == 200 and out.json()["catalog"] is None and "unavailable" in out.json()["catalog_error"]
+    flat = [o for sc in out.json()["scenes"] for o in sc["objects"]]
+    assert flat and all(o["status"] == "unidentified" for o in flat)                 # objects still listed
+    assert c.post(f"/api/videos/{vid}/products/identify", json={"key": flat[0]["key"], "status": "no_product",
+                                                               "actor": "t"}).status_code == 503
     assert sum(len(sc["candidates"]) for sc in c.get(f"/api/videos/{vid}/commercial").json()["scenes"]) == n
     assert c.get(f"/api/videos/{vid}/result").status_code == 200
-    monkeypatch.delenv("SCENESEEN_DATABASE_URL")
-    monkeypatch.setattr(app_module, "_DB", None)
-
-    # 3. the matcher itself explodes
-    from sceneseen.matching import matcher
-
-    monkeypatch.setattr(matcher, "match_video", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("matcher exploded")))
-    out = c.get(f"/api/videos/{vid}/products").json()
-    assert out["matching"]["status"] == "unavailable" and "matcher exploded" in out["matching"]["reason"]
-    assert sum(len(sc["objects"]) for sc in out["scenes"]) >= 1
+    assert c.get(f"/api/videos/{vid}/products/export").status_code == 200

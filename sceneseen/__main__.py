@@ -161,15 +161,12 @@ def cmd_commercial(args, cfg) -> int:
 
 
 def cmd_products(args, cfg) -> int:
-    """Phase 2B: match a video's commercial objects against the catalogue and list products per scene."""
+    """Phase 2B: products per scene = detected objects + what people identified them as.
+    Nothing is guessed here; identify products in the web app (Identify Product)."""
+    from .catalog import identification
     from .catalog.db import Database
-    from .catalog.images import ImageStore
     from .commercial import analysis as commercial_analysis
     from .config import catalog_paths
-    from .matching import matcher, products, verification
-    from .matching.embedder import get_embedder
-    from .matching.index import get_index
-    from .matching.store import ensure_catalog_embeddings
     from .media import probe
     from .pipeline import analyze, load_stage_outputs, unique_shots_for
 
@@ -184,42 +181,28 @@ def cmd_products(args, cfg) -> int:
     if com["status"] == "unavailable":
         print(f"Commercial analysis unavailable: {com['reason']}")
         return 1
-    db = match = None
-    verified: dict = {}
-    video_id = stage["cache"].dir.name
+    idents: dict = {}
     try:
-        url, images = catalog_paths(cfg)
-        db = Database(url)
-        verified = verification.for_video(db, video_id)
-        emb = get_embedder(cfg.matching.embedder, cfg.matching.device, cfg.matching.batch_size)
-        emb.load()
-        ensure_catalog_embeddings(db, ImageStore(images), emb, batch=cfg.matching.batch_size)
-        cdir = stage["cache"].dir / "commercial"
-        match = matcher.match_video(com, cdir, cdir / f"frames_{cfg.commercial.frame_long_side}",
-                                    get_index(db, emb.cache_key()), emb, cfg.matching)
-    except Exception as e:   # catalogue or model problem: the objects are still listed, as generic objects
-        print(f"Product matching unavailable ({type(e).__name__}: {e}); listing generic objects only.")
-    out = products.scene_products(com, match, verified, db)
+        idents = identification.for_video(Database(catalog_paths(cfg)[0]), stage["cache"].dir.name)
+    except Exception as e:   # catalogue problem: the objects are still listed, as unidentified
+        print(f"Catalogue unavailable ({type(e).__name__}: {e}); listing objects as unidentified.")
+    out = identification.scene_products(com, idents)
     out_dir = Path(args.out or cfg.paths.exports_dir / Path(args.video).stem)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "products.json").write_text(
-        json.dumps({"video": Path(args.video).name, **products.export_view(out)}, indent=1, ensure_ascii=False), encoding="utf-8")
+        json.dumps({"video": Path(args.video).name, "identification_source": "human", **identification.export_view(out)},
+                   indent=1, ensure_ascii=False), encoding="utf-8")
     for sc in out["scenes"]:
         v = sc["context"].get("venue")
         print(f"\nScene {sc['scene_id']:02d}  {_ts(sc['start_seconds'])} → {_ts(sc['end_seconds'])}   [{v['label'] if v else 'context unknown'}]")
         for o in sc["objects"]:
-            top = o["candidates"][0] if o["candidates"] else None
-            what = (f"{o['product']['brand']} · {o['product']['name']}" if o["product"]
-                    else f"{top['product']['brand']} · {top['product']['name']} ?" if top and o["status"] in ("high_confidence_candidate", "needs_review")
-                    else "")
-            mc = "  —" if o["match_confidence"] is None or not top else f"{o['match_confidence']:>4.0%}"
-            print(f"   {o['label']:<20} detection {o['detection_confidence']:.0%}  relevance {o['commercial_relevance']:.2f}  "
-                  f"match {mc}  {o['status_label']:<26} {what}")
-    n = out["status_counts"]
-    print("\n" + " · ".join(f"{v} {out['status_labels'][k].lower()}" for k, v in n.items() if v))
-    if match:
-        print(f"Matching: {match['status']} in {match['seconds']} s against {match['summary']['catalogue_products']} products "
-              f"({match['summary']['crops_embedded_now']} crops embedded now)")
+            i = o["identification"] or {}
+            what = " · ".join(x for x in [(i.get("brand") or {}).get("name"), (i.get("product") or {}).get("name"),
+                                         (i.get("variant") or {}).get("name")] if x)
+            who = f"  (human: {i['identified_by']})" if i else ""
+            print(f"   {o['label']:<20} detection {o['detection_confidence']:.0%}  relevance {o['commercial_relevance_level']:<6} "
+                  f"{o['status_label']:<24} {what}{who}")
+    print("\n" + " · ".join(f"{v} {out['status_labels'][k].lower()}" for k, v in out["status_counts"].items() if v))
     print(f"Product data: {out_dir / 'products.json'}")
     return 0
 
@@ -392,7 +375,7 @@ def main(argv=None) -> int:
     co.add_argument("video")
     co.add_argument("--out", help="output directory (default data/exports/<video stem>)")
     co.add_argument("--all", action="store_true", help="also list candidates hidden from the normal view")
-    pr = sub.add_parser("products", help="Phase 2B: match a video's objects against the product catalogue")
+    pr = sub.add_parser("products", help="Phase 2B: products per scene from human identifications")
     pr.add_argument("video")
     pr.add_argument("--out", help="output directory (default data/exports/<video stem>)")
     cr = sub.add_parser("commercial-report", help="precision of reviewed commercial detections")

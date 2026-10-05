@@ -373,7 +373,7 @@ function renderCommercial() {
             x.displayed ? null : el("div", {}, `hidden: ${x.hidden_reason}`),
             reviewButtons(x)) : null));
       card.addEventListener("click", (ev) => {
-        if (ev.target.closest(".rev")) return;
+        if (ev.target.closest(".rev, .idbtn")) return;
         const open = card.classList.contains("open");
         grid.querySelectorAll(".cdetail").forEach((n) => n.remove());
         grid.querySelectorAll(".ccard.open").forEach((n) => n.classList.remove("open"));

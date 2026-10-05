@@ -378,14 +378,14 @@ def commercial_report():
     return _review_summary()
 
 
-# ---------------------------------------------------------------- routes: catalogue + product matching (Phase 2B)
+# ---------------------------------------------------------------- routes: catalogue + human product identification (Phase 2B)
 
 _DB = None
 
 
 def _db():
     """The catalogue database, opened on first use. 503 when it cannot be opened: only the
-    catalogue / matching routes are affected, scenes and commercial objects keep working."""
+    catalogue / identification routes are affected, scenes and commercial objects keep working."""
     global _DB
     if _DB is None:
         from sceneseen.catalog.db import Database
@@ -406,190 +406,94 @@ def _image_store():
     return ImageStore(catalog_paths(CFG)[1])
 
 
-def _embedder():
-    from sceneseen.matching.embedder import get_embedder
-
-    return get_embedder(CFG.matching.embedder, CFG.matching.device, CFG.matching.batch_size)
-
-
 from .catalog_api import build_router  # noqa: E402
 
 app.include_router(build_router(_db, _image_store))
 
 
-def _catalog_state() -> dict:
-    """How much of the catalogue is ready for matching (no model is loaded for this)."""
-    from sceneseen.catalog import service
-    from sceneseen.matching.signals import COLOUR_KEY
-    from sceneseen.matching.store import missing_catalog_images
-
-    db, emb = _db(), _embedder()
-    pending = {x[0] for x in missing_catalog_images(db, emb.cache_key())} | {x[0] for x in missing_catalog_images(db, COLOUR_KEY)}
-    return {**service.stats(db), "images_pending": len(pending), "embedder": emb.cache_key(),
-            "embedder_loaded": emb.device is not None}
-
-
-@app.get("/api/catalog/status")
-def catalog_status():
-    return _catalog_state()
-
-
-def _embed_catalog(job: Job | None = None, span=(0.0, 1.0)) -> dict:
-    from sceneseen.matching.store import ensure_catalog_embeddings
-
-    def progress(frac):
-        if job:
-            job.progress = span[0] + (span[1] - span[0]) * frac
-
-    if job:
-        job.stage, job.stage_label = "embed_catalog", "Reading product images"
-    return ensure_catalog_embeddings(_db(), _image_store(), _embedder(), progress, CFG.matching.batch_size)
-
-
-@app.post("/api/catalog/embed")
-def start_catalog_embedding():
-    """Embed product images that are new (background job; unchanged images are never recomputed)."""
-    _db()
-
-    def work(job: Job) -> dict:
-        job.stage, job.stage_label = "load", "Loading the image model"
-        _embedder().load()
-        return _embed_catalog(job, (0.05, 1.0))
-
-    return jobs.submit("catalog-embed", "catalog", work).public()
-
-
-def _products(vid: str, allow_inference: bool, job: Job | None = None) -> tuple[dict, dict, dict | None]:
-    """Products per scene for the CURRENT scenes: commercial objects + catalogue candidates +
-    human decisions. Never raises for catalogue / model problems: the objects are still returned,
-    just without products."""
-    from sceneseen.matching import matcher, products, verification
-    from sceneseen.matching.index import get_index
+def _products(vid: str) -> tuple[dict, dict]:
+    """Products per scene for the CURRENT scenes: detected commercial objects + what people
+    identified them as. No model runs here and nothing is guessed. If the catalogue database is
+    unavailable the objects are still returned, as unidentified."""
+    from sceneseen.catalog import identification
 
     com = _commercial(vid, allow_inference=False)
-    for sc in com.get("scenes", []):
-        for c in sc["candidates"]:
-            c["scene_id"] = sc["scene_id"]
     out = {"video": com.get("video"), "commercial_status": com["status"], "frame_base": com.get("frame_base"),
-           "taxonomy_version": com.get("taxonomy_version"), "detector": com.get("model")}
-    db = match = None
-    verified: dict = {}
+           "taxonomy_version": com.get("taxonomy_version"), "catalog": None, "catalog_error": None}
+    idents: dict = {}
     try:
+        from sceneseen.catalog import service
+
         db = _db()
-        verified = verification.for_video(db, vid)
+        idents = identification.for_video(db, vid)
+        out["catalog"] = service.stats(db)
     except HTTPException as e:
-        out["matching"] = {"status": "unavailable", "reason": e.detail}
-    if db is not None and com["status"] in ("ready", "partial"):
-        try:
-            emb = _embedder()
-            if allow_inference:
-                if job:
-                    job.stage, job.stage_label, job.progress = "load", "Loading the image model", 0.02
-                emb.load()
-                cat = _embed_catalog(job, (0.1, 0.5))
-                out["catalog_embedding"] = {"embedded": cat["embedded"], "failed": cat["failed"]}
-
-            def progress(stage, frac):
-                if job:
-                    job.stage = stage
-                    job.stage_label = "Reading the detected objects" if stage == "embed_objects" else "Matching products"
-                    job.progress = 0.5 + 0.45 * frac if stage == "embed_objects" else 0.97
-
-            cdir = _cache(vid).path("commercial")
-            match = matcher.match_video(com, cdir, cdir / f"frames_{CFG.commercial.frame_long_side}",
-                                        get_index(db, emb.cache_key()), emb, CFG.matching, allow_inference, progress)
-            out["matching"] = {k: match[k] for k in ("status", "reason", "model", "calibration_version", "summary", "seconds")}
-        except Exception as e:   # model download failed, corrupt cache, database error, ...
-            log.error("product matching failed: %s: %s", type(e).__name__, e)
-            out["matching"] = {"status": "unavailable", "reason": f"{type(e).__name__}: {e}"}
-            match = None
-    elif db is not None:
-        out["matching"] = {"status": "not_run", "reason": "commercial objects have not been analysed for this video yet"}
-    try:
-        out["catalog"] = _catalog_state() if db is not None else None
-    except Exception:
-        out["catalog"] = None
-    try:
-        out.update(products.scene_products(com, match, verified, db))
+        out["catalog_error"] = e.detail
     except Exception as e:
-        log.error("assembling scene products failed: %s: %s", type(e).__name__, e)
-        out.update(products.scene_products(com, None, {}, None))
-        out["matching"] = {"status": "unavailable", "reason": f"{type(e).__name__}: {e}"}
-    return out, com, match
+        log.error("reading identifications failed: %s: %s", type(e).__name__, e)
+        out["catalog_error"] = f"{type(e).__name__}: {e}"
+    out.update(identification.scene_products(com, idents))
+    return out, com
 
 
 @app.get("/api/videos/{vid}/products")
 def scene_products(vid: str):
-    """Products per scene from caches only (instant; never loads a model)."""
+    """Detected objects with their human identifications (instant; loads no model)."""
     _meta(vid)
-    return _products(vid, allow_inference=False)[0]
+    return _products(vid)[0]
 
 
-@app.post("/api/videos/{vid}/products/match")
-def start_matching(vid: str):
-    """Background job: embed new catalogue images, embed the detected objects, rank candidates."""
-    _meta(vid)
-    _current_result(vid)
-
-    def work(job: Job) -> dict:
-        out = _products(vid, allow_inference=True, job=job)[0]
-        m = out["matching"]
-        if m["status"] == "unavailable":
-            raise RuntimeError(m.get("reason") or "product matching unavailable")
-        return {"status": m["status"], "summary": m.get("summary")}
-
-    return jobs.submit(f"match-{vid}", "matching", work).public()
-
-
-class VerifyBody(BaseModel):
-    key: str
-    action: str                       # confirm | no_match | clear
+class IdentifyBody(BaseModel):
+    key: str                          # the detected (grouped) object
+    actor: str = ""
+    brand_id: int | None = None
     product_id: int | None = None
     variant_id: int | None = None
-    actor: str = ""
-    source: str | None = None         # suggestion | search
+    status: str | None = None         # unknown_product | no_product | not_commercial (or omit when linking)
+    confirm: bool = True              # with a product: false = "product identified", not confirmed yet
+    notes: str | None = None
+    clear: bool = False               # remove the identification (back to unidentified)
 
 
-@app.post("/api/videos/{vid}/products/verify")
-def verify_product(vid: str, body: VerifyBody):
-    """A human decision about one detected object (written to the audit trail)."""
-    from sceneseen.matching import verification
+@app.post("/api/videos/{vid}/products/identify")
+def identify_product(vid: str, body: IdentifyBody):
+    """A person identifies one detected object (brand only, exact product, variant, or a
+    "no product" status). Every call is appended to the audit history."""
+    from sceneseen.catalog import identification
 
     _meta(vid)
-    out, com, match = _products(vid, allow_inference=False)
-    cand = next((c for sc in com.get("scenes", []) for c in sc["candidates"] if c["key"] == body.key), None)
-    if cand is None:
+    com = _commercial(vid, allow_inference=False)
+    obj = next((c for sc in com.get("scenes", []) for c in sc["candidates"] if c["key"] == body.key), None)
+    if obj is None:
         raise HTTPException(404, "unknown object")
-    m = (match or {}).get("matches", {}).get(body.key)
-    models = {"detector": (com.get("model") or {}).get("name"), "detector_key": (com.get("model") or {}).get("detector_key"),
-              "taxonomy": com.get("taxonomy_version"), "embedder": (match or {}).get("model", {}).get("embedder_key"),
-              "calibration": CFG.matching.calibration_version}
     try:
-        row = verification.decide(_db(), vid, cand, body.action, body.actor, body.product_id, body.variant_id,
-                                  body.source, m, models, com.get("video"))
-    except verification.VerificationError as e:
-        raise HTTPException(400, str(e))
-    return {"saved": True, "verification": row}
+        if body.clear:
+            identification.clear(_db(), vid, body.key, body.actor, body.notes)
+            return {"saved": True, "identification": None}
+        row = identification.identify(_db(), vid, obj, body.actor, body.brand_id, body.product_id, body.variant_id,
+                                      body.status, body.confirm, body.notes, com.get("video"))
+    except identification.IdentificationError as e:
+        raise HTTPException(404 if e.code == "not_found" else 400, e.message)
+    return {"saved": True, "identification": row}
 
 
 @app.get("/api/videos/{vid}/products/history")
-def verification_history(vid: str, key: str = ""):
-    from sceneseen.matching import verification
+def identification_history(vid: str, key: str = ""):
+    from sceneseen.catalog import identification
 
     _meta(vid)
-    return {"events": verification.events(_db(), vid, key or None)}
+    return {"events": identification.history(_db(), vid, key or None)}
 
 
 @app.get("/api/videos/{vid}/products/export")
 def export_products(vid: str):
-    """Compact final output: confirmed / candidate / unknown product per object and scene."""
-    from sceneseen.matching import products
+    """Final, human-grounded output: per scene, each object with brand / product / status / who."""
+    from sceneseen.catalog import identification
 
     _meta(vid)
-    out = _products(vid, allow_inference=False)[0]
-    return {"video": out["video"], "generated_from": {"taxonomy": out.get("taxonomy_version"),
-                                                       "matching": out.get("matching", {}).get("calibration_version")},
-            **products.export_view(out)}
+    out = _products(vid)[0]
+    return {"video": out["video"], "identification_source": "human", "taxonomy": out.get("taxonomy_version"),
+            **identification.export_view(out)}
 
 
 # ---------------------------------------------------------------- routes: media

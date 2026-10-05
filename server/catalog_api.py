@@ -87,8 +87,8 @@ def build_router(get_db: Callable, get_store: Callable) -> APIRouter:
 
     # ---- brands
     @r.get("/brands")
-    def brands(archived: bool = False):
-        return {"brands": S.list_brands(get_db(), include_archived=archived)}
+    def brands(archived: bool = False, q: str = "", compatible_with: str = "", limit: int | None = None):
+        return {"brands": call(S.list_brands, get_db(), archived, q or None, compatible_with or None, limit)}
 
     @r.post("/brands")
     def create_brand(body: BrandBody):
@@ -101,9 +101,11 @@ def build_router(get_db: Callable, get_store: Callable) -> APIRouter:
     # ---- products
     @r.get("/products")
     def products(q: str = "", category: str = "", object_type: str = "", brand_id: int | None = None,
-                 archived: bool = False, limit: int = 48, offset: int = 0):
-        return S.search_products(get_db(), q or None, category or None, object_type or None, brand_id, archived,
-                                 limit, offset)
+                 archived: bool = False, limit: int = 48, offset: int = 0, compatible_with: str = ""):
+        """`compatible_with` = a detected object type (e.g. sneakers): only products that kind of
+        object could be. A filter for the person searching, never an identification."""
+        return call(S.search_products, get_db(), q or None, category or None, object_type or None, brand_id, archived,
+                    limit, offset, compatible_with or None)
 
     @r.post("/products")
     def create_product(body: ProductBody):
