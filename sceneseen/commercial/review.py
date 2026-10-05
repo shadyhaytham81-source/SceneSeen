@@ -1,4 +1,4 @@
-"""Human review of commercial detections: Correct / Wrong / Missed.
+"""Human review of commercial detections: seven verdicts + missed objects.
 
 Reviews are data, kept next to the scene labels in ground_truth/commercial_reviews/<video>.json
 (committed to Git; no images). Each verdict stores a snapshot of what was judged (object type,
@@ -17,7 +17,17 @@ import time
 import unicodedata
 from pathlib import Path
 
-VERDICTS = ("correct", "wrong")
+# A detection is not always simply right or wrong, so a review says WHAT is the matter:
+VERDICTS = {
+    "correct": "Correct: the object is there, the label is right, and it is commercially useful",
+    "wrong": "Wrong: there is no such object in the box",
+    "unsure": "Unsure: cannot tell",
+    "wrong_label": "Wrong label: a real object, but it should be called something else (give the right label)",
+    "not_commercial": "Not commercially useful: correctly detected, but of no product-placement value",
+    "bad_image": "Bad / unclear image: too dark, blurred or cropped to judge",
+    "duplicate": "Duplicate: the same object is already listed in this scene",
+}
+EXCLUDED = ("unsure", "bad_image")          # say nothing about the detector: left out of every rate
 
 
 def _nfc(s: str) -> str:
@@ -47,15 +57,33 @@ class ReviewStore:
         tmp.write_text(json.dumps(d, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
         tmp.replace(self.path)
 
-    def set_verdict(self, candidate: dict, verdict: str | None, reviewer: str, model: dict, taxonomy_version: str) -> dict:
+    def set_verdict(self, candidate: dict, verdict: str | None, reviewer: str, model: dict, taxonomy_version: str,
+                    corrected_type_id: str | None = None, corrected_label: str | None = None, note: str = "") -> dict:
+        """Store one structured review. For `wrong_label` the correct generic label is required:
+        either a taxonomy type (corrected_type_id) or free text (corrected_label) when the right
+        label is not in the taxonomy yet (useful input for extending it)."""
+        from .taxonomy import OBJECTS
+
         d = self.load()
         if verdict is None:
             d["reviews"].pop(candidate["key"], None)
         else:
             if verdict not in VERDICTS:
-                raise ValueError(f"verdict must be one of {VERDICTS}")
+                raise ValueError(f"verdict must be one of: {', '.join(VERDICTS)}")
+            correction = None
+            if verdict == "wrong_label":
+                if corrected_type_id and corrected_type_id not in OBJECTS:
+                    raise ValueError(f"unknown object type '{corrected_type_id}'")
+                label = OBJECTS[corrected_type_id].label if corrected_type_id else (corrected_label or "").strip()
+                if not label:
+                    raise ValueError("a wrong-label review needs the correct label")
+                if corrected_type_id == candidate["type_id"]:
+                    raise ValueError("the corrected label is the same as the detected one")
+                correction = {"type_id": corrected_type_id or None, "label": label,
+                              "in_taxonomy": bool(corrected_type_id)}
             d["reviews"][candidate["key"]] = {
-                "verdict": verdict, "type_id": candidate["type_id"], "label": candidate["label"],
+                "verdict": verdict, "correction": correction, "note": note.strip(),
+                "type_id": candidate["type_id"], "label": candidate["label"],
                 "category": candidate["category"], "scene_id": candidate["scene_id"],
                 "detection_confidence": candidate["detection_confidence"],
                 "commercial_relevance": candidate["commercial_relevance"], "displayed": candidate["displayed"],
@@ -80,14 +108,37 @@ def attach(result: dict, store_data: dict) -> dict:
     for sc in result.get("scenes", []):
         for c in sc["candidates"]:
             c["review"] = rv.get(c["key"], {}).get("verdict")
+            c["review_correction"] = rv.get(c["key"], {}).get("correction")
         sc["missed"] = [m for m in store_data.get("missed", []) if m["scene_id"] == sc["scene_id"]]
     return result
 
 
 def _prec(rows: list[dict]) -> dict:
-    c = sum(r["verdict"] == "correct" for r in rows)
-    w = sum(r["verdict"] == "wrong" for r in rows)
-    return {"reviewed": c + w, "correct": c, "wrong": w, "precision": round(c / (c + w), 4) if c + w else None}
+    """Rates over the judged reviews (unsure / bad image are left out).
+
+    precision            share that should be shown as they are   = correct / judged
+    detection_precision  share where the detector found a real object with the right label
+                         (correct + not commercially useful + duplicate) / judged
+    The difference between the two is not a detector error: it is relevance and de-duplication.
+    """
+    n = {v: sum(r["verdict"] == v for r in rows) for v in VERDICTS}
+    judged = sum(n[v] for v in VERDICTS if v not in EXCLUDED)
+    found = n["correct"] + n["not_commercial"] + n["duplicate"]
+    return {"reviewed": judged, "correct": n["correct"], "wrong": judged - n["correct"],
+            "precision": round(n["correct"] / judged, 4) if judged else None,
+            "detection_precision": round(found / judged, 4) if judged else None,
+            "by_verdict": n, "excluded": sum(n[v] for v in EXCLUDED)}
+
+
+def label_corrections(rows: list[dict]) -> list[dict]:
+    """Detected label -> corrected label, with counts (input for taxonomy and threshold work)."""
+    pairs: dict[tuple[str, str], int] = {}
+    for r in rows:
+        c = r.get("correction")
+        if r["verdict"] == "wrong_label" and c:
+            k = (r["type_id"], c.get("type_id") or f"new:{c['label']}")
+            pairs[k] = pairs.get(k, 0) + 1
+    return [{"detected": a, "corrected": b, "count": n} for (a, b), n in sorted(pairs.items(), key=lambda kv: -kv[1])]
 
 
 def summarize(gt_dir: Path, min_confidence: float | None = None, min_relevance: float = 0.45,
@@ -119,6 +170,7 @@ def summarize(gt_dir: Path, min_confidence: float | None = None, min_relevance: 
 
     disp = [r for r in rows if shown(r, min_confidence)]
     out = {"videos": videos, "missed_reported": missed, "all_reviewed": _prec(rows), "displayed": _prec(disp),
+           "label_corrections": label_corrections(rows),
            "by_category": {}, "by_type": {}, "by_video": {}, "threshold_sweep": []}
     for key, field in (("by_category", "category"), ("by_type", "type_id"), ("by_video", "video")):
         for v in sorted({r[field] for r in disp}):

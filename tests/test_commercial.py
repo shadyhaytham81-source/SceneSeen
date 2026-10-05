@@ -412,7 +412,8 @@ def test_review_store_precision_and_unicode(tmp_path):
     store.add_missed(1, "handbag", "shady")
     assert store.path.name == "أنا بحب بيتكم ❤️ مشهد.json" and store.path.exists()
     s = summarize(tmp_path / "gt")
-    assert s["displayed"] == {"reviewed": 3, "correct": 2, "wrong": 1, "precision": pytest.approx(0.6667, abs=1e-4)}
+    d = s["displayed"]
+    assert (d["reviewed"], d["correct"], d["wrong"]) == (3, 2, 1) and d["precision"] == pytest.approx(0.6667, abs=1e-4)
     assert s["missed_reported"] == 1 and s["by_category"]["electronics"]["precision"] == 1.0
     # re-evaluate the same reviews at a stricter threshold: the wrong sneakers (0.70) and the watch (0.62) drop out
     assert summarize(tmp_path / "gt", min_confidence=0.75)["displayed"]["reviewed"] == 1
@@ -423,3 +424,63 @@ def test_review_store_precision_and_unicode(tmp_path):
     attached = attach(rec, store.load())
     assert {c["type_id"]: c["review"] for c in attached["scenes"][0]["candidates"]}["smartphone"] == "correct"
     assert attached["scenes"][0]["missed"][0]["label"] == "handbag"
+
+
+def test_structured_review_verdicts(tmp_path):
+    """A detection is not just right or wrong: wrong label, not useful, unclear, duplicate, unsure."""
+    rec, _ = run(tmp_path, {0: [PHONE, WATCH, SNEAK], 1: []})
+    store = ReviewStore(tmp_path / "gt", "clip.mp4")
+    c = {x["type_id"]: x for x in rec["scenes"][0]["candidates"]}
+    model = {"name": "fake", "detector_key": "k1"}
+    args = ("shady", model, T.TAXONOMY_VERSION)
+    # wrong label -> the correct taxonomy type is required and stored
+    with pytest.raises(ValueError):
+        store.set_verdict(c["sneakers"], "wrong_label", *args)
+    with pytest.raises(ValueError):
+        store.set_verdict(c["sneakers"], "wrong_label", *args, corrected_type_id="not_a_type")
+    with pytest.raises(ValueError):
+        store.set_verdict(c["sneakers"], "wrong_label", *args, corrected_type_id="sneakers")      # same as detected
+    store.set_verdict(c["sneakers"], "wrong_label", *args, corrected_type_id="shoes", note="formal shoes")
+    r = store.load()["reviews"][c["sneakers"]["key"]]
+    assert r["verdict"] == "wrong_label" and r["correction"] == {"type_id": "shoes", "label": "Shoes", "in_taxonomy": True}
+    assert r["note"] == "formal shoes" and r["type_id"] == "sneakers" and r["detection_confidence"] == c["sneakers"]["detection_confidence"]
+    # a label the taxonomy does not have yet is kept as free text (Arabic is fine)
+    store.set_verdict(c["sneakers"], "wrong_label", *args, corrected_label="شبشب")
+    assert store.load()["reviews"][c["sneakers"]["key"]]["correction"] == {"type_id": None, "label": "شبشب", "in_taxonomy": False}
+    store.set_verdict(c["sneakers"], "wrong_label", *args, corrected_type_id="shoes")
+    store.set_verdict(c["smartphone"], "not_commercial", *args)
+    store.set_verdict(c["watch"], "correct", *args)
+    s = summarize(tmp_path / "gt")
+    d = s["displayed"]
+    assert d["reviewed"] == 3 and d["correct"] == 1 and d["precision"] == pytest.approx(1 / 3, abs=1e-3)
+    assert d["detection_precision"] == pytest.approx(2 / 3, abs=1e-3)      # the phone WAS detected correctly
+    assert d["by_verdict"]["wrong_label"] == 1 and d["by_verdict"]["not_commercial"] == 1
+    assert s["label_corrections"] == [{"detected": "sneakers", "corrected": "shoes", "count": 1}]
+    # unsure / unclear image say nothing about the detector: excluded from every rate
+    store.set_verdict(c["smartphone"], "bad_image", *args)
+    store.set_verdict(c["sneakers"], "unsure", *args)
+    d = summarize(tmp_path / "gt")["displayed"]
+    assert d["reviewed"] == 1 and d["excluded"] == 2 and d["precision"] == 1.0
+    store.set_verdict(c["smartphone"], "duplicate", *args)
+    d = summarize(tmp_path / "gt")["displayed"]
+    assert d["precision"] == 0.5 and d["detection_precision"] == 1.0
+    attached = attach(rec, store.load())
+    by = {x["type_id"]: x for x in attached["scenes"][0]["candidates"]}
+    assert by["smartphone"]["review"] == "duplicate" and by["sneakers"]["review_correction"] is None
+    # the file is plain structured JSON, usable later for threshold / taxonomy work; nothing is retrained
+    data = json.loads(store.path.read_text(encoding="utf-8"))
+    assert {"verdict", "correction", "type_id", "detection_confidence", "commercial_relevance", "reviewer"} <= set(
+        data["reviews"][c["watch"]["key"]])
+
+
+def test_old_review_files_still_load(tmp_path):
+    """Reviews written before the extra verdicts existed (correct / wrong only) keep working."""
+    d = tmp_path / "gt" / "commercial_reviews"
+    d.mkdir(parents=True)
+    (d / "old.json").write_text(json.dumps({"video": "old.mp4", "missed": [], "reviews": {
+        "k1": {"verdict": "correct", "type_id": "watch", "label": "Watch", "category": "accessories",
+               "detection_confidence": 0.8, "commercial_relevance": 0.8},
+        "k2": {"verdict": "wrong", "type_id": "watch", "label": "Watch", "category": "accessories",
+               "detection_confidence": 0.7, "commercial_relevance": 0.8}}}), encoding="utf-8")
+    s = summarize(tmp_path / "gt")
+    assert s["displayed"]["precision"] == 0.5 and s["label_corrections"] == []
