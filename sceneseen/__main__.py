@@ -4,6 +4,8 @@
   python -m sceneseen evaluate [--split dev|test|all]
   python -m sceneseen tune
   python -m sceneseen train
+  python -m sceneseen commercial VIDEO [--all]
+  python -m sceneseen commercial-report [--min-confidence 0.4]
   python -m sceneseen check-data
   python -m sceneseen serve [--port 8000]
 """
@@ -117,6 +119,68 @@ def cmd_tune(args, cfg) -> int:
                                          f"from {cfg.paths.ground_truth_dir.name}/")
     print(f"\nWrote {path}. Evaluate ONCE on the test set with:\n"
           f"  python -m sceneseen --config {out} evaluate --split test")
+    return 0
+
+
+def cmd_commercial(args, cfg) -> int:
+    """Phase 2A: commercial objects + scene context for a video (Phase 1 is run/cached first)."""
+    from .commercial import analysis as commercial_analysis
+    from .media import probe
+    from .pipeline import analyze, load_stage_outputs, unique_shots_for
+
+    result = analyze(args.video, cfg)
+    info = probe(args.video)
+    stage = load_stage_outputs(cfg, info)
+    unique = unique_shots_for(cfg, info, stage, result["scenes"])
+    rec = commercial_analysis.analyze(
+        stage["cache"].dir, info, stage["shots"], result["scenes"], unique, cfg.commercial,
+        clip=stage["features"]["clip"], clip_model=(cfg.features.model, cfg.features.pretrained),
+        cache_root=cfg.paths.cache_dir)
+    out_dir = Path(args.out or cfg.paths.exports_dir / Path(args.video).stem)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "commercial.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False), encoding="utf-8")
+    s = rec["summary"]
+    if rec["status"] == "unavailable":
+        print(f"Commercial analysis unavailable: {rec['reason']}\n(Scenes and Unique Shots are unaffected.)")
+        return 1
+    print(f"\n{s['candidates_shown']} commercial objects in {s['scenes']} scenes "
+          f"({s['unique_shots']} unique shots analysed instead of {s['original_shots']} shots; "
+          f"{s['frames_inferred_now']} inferred now, {s['frames_from_cache']} from cache; status: {rec['status']})")
+    for sc in rec["scenes"]:
+        v, e = sc["context"]["venue"], sc["context"]["environment"]
+        ctx = " · ".join(x for x in [v and f"{v['label']} ({v['confidence']:.0%})", e and e["label"]] if x) or "context unknown"
+        print(f"\nScene {sc['scene_id']:02d}  {_ts(sc['start_seconds'])} → {_ts(sc['end_seconds'])}   [{ctx}]")
+        for c in sc["candidates"]:
+            if c["displayed"] or args.all:
+                flag = "" if c["displayed"] else f"   (hidden: {c['hidden_reason']})"
+                print(f"   {c['label']:<22} {c['category_name']:<24} confidence {c['detection_confidence']:.0%}  "
+                      f"relevance {c['commercial_relevance']:.2f}  seen ×{c['seen_count']}{flag}")
+    print(f"\nTimings (s): {rec['timings']}  ·  model: {rec['model'].get('name')} on {rec['model'].get('device', 'cache')}")
+    print(f"Commercial data: {out_dir / 'commercial.json'}")
+    return 0
+
+
+def cmd_commercial_report(args, cfg) -> int:
+    """Precision of reviewed commercial detections (from ground_truth/commercial_reviews/)."""
+    from .commercial import review
+
+    rep = review.summarize(cfg.paths.ground_truth_dir, args.min_confidence, cfg.commercial.min_relevance,
+                           cfg.commercial.min_confidence)
+    d = rep["displayed"]
+    if not rep["all_reviewed"]["reviewed"]:
+        print("No reviews yet. In the web app: Developer mode → Commercial Objects → mark detections Correct / Wrong.")
+        return 1
+    scope = f"at a flat confidence ≥ {args.min_confidence}" if args.min_confidence is not None else "under the current display rules"
+    print(f"Displayed detections {scope}: precision {d['precision']:.1%} "
+          f"({d['correct']} correct, {d['wrong']} wrong, {rep['videos']} videos); missed objects reported: {rep['missed_reported']}")
+    for title, key in (("By category", "by_category"), ("By object type", "by_type"), ("By video", "by_video")):
+        print(f"\n{title}")
+        for k, v in sorted(rep[key].items(), key=lambda kv: -kv[1]["reviewed"]):
+            print(f"  {k[:44]:<44} {v['precision']:.0%}  ({v['correct']}/{v['reviewed']})")
+    print("\nPrecision vs confidence threshold (all reviewed detections, incl. hidden ones):")
+    for r in rep["threshold_sweep"]:
+        if r["reviewed"]:
+            print(f"  ≥ {r['min_confidence']:.2f}: {r['precision']:.1%}  ({r['correct']}/{r['reviewed']})")
     return 0
 
 
@@ -254,6 +318,13 @@ def main(argv=None) -> int:
     e.add_argument("--split", choices=["dev", "val", "test", "all"], default="dev")
     t = sub.add_parser("tune", help="grid-search grouping thresholds on the dev split")
     t.add_argument("--out", default=str(ROOT / "config" / "tuned.toml"), help="where to write the tuned [grouping]")
+    co = sub.add_parser("commercial", help="Phase 2A: commercial objects + scene context for a video")
+    co.add_argument("video")
+    co.add_argument("--out", help="output directory (default data/exports/<video stem>)")
+    co.add_argument("--all", action="store_true", help="also list candidates hidden from the normal view")
+    cr = sub.add_parser("commercial-report", help="precision of reviewed commercial detections")
+    cr.add_argument("--min-confidence", type=float, default=None,
+                    help="re-evaluate existing reviews at this display threshold")
     tr = sub.add_parser("train", help="train the optional boundary classifier (dev -> validate on val; never test)")
     tr.add_argument("--out", default=str(ROOT / "models"), help="directory for the versioned model artifact")
     tr.add_argument("--no-tuned", action="store_true", help="skip the (slow) tuned-rule comparison")
@@ -266,7 +337,8 @@ def main(argv=None) -> int:
     _setup_logging(args.verbose)
     cfg = load_config(*args.config)
     return {"analyze": cmd_analyze, "evaluate": cmd_evaluate, "tune": cmd_tune, "serve": cmd_serve,
-            "check-data": cmd_check_data, "train": cmd_train}[args.cmd](args, cfg)
+            "check-data": cmd_check_data, "train": cmd_train,
+            "commercial": cmd_commercial, "commercial-report": cmd_commercial_report}[args.cmd](args, cfg)
 
 
 if __name__ == "__main__":

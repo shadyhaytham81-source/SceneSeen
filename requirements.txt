@@ -2,6 +2,7 @@
 torch==2.14.1
 torchvision==0.29.1
 open_clip_torch==3.3.0
+transformers==5.18.0          # Phase 2A commercial detector (OWLv2); weights download on first use (~620 MB)
 transnetv2-pytorch==1.0.5
 scenedetect==0.7.1
 opencv-python-headless==5.0.0.93

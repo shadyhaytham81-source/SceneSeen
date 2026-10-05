@@ -54,6 +54,7 @@ function setDev(on) {
   $("#devToggle").checked = on;
   try { localStorage.setItem("sceneseen.dev", on ? "1" : "0"); } catch (_) {}
   if (on && state.vid && !$("#results").hidden) loadResult(state.vid);
+  else if (state.commercial && !$("#results").hidden) renderCommercial();   // drop developer details at once
 }
 $("#devToggle").addEventListener("change", (e) => setDev(e.target.checked));
 
@@ -152,7 +153,8 @@ async function loadResult(vid) {
   renderResult(r);
   show("results");
   state.uniqueOpen = null;
-  loadUnique(vid);
+  state.commOpen = null; state.commFilter = "all";
+  loadUnique(vid).then(() => loadCommercial(vid));
 }
 
 function renderResult(r) {
@@ -196,7 +198,7 @@ function renderResult(r) {
   $("#editTools").hidden = !state.editing;
   $("#editToggle").disabled = !!r.preview_only;
   $("#exportClips").disabled = $("#exportJson").disabled = !!r.preview_only;
-  if (r.preview_only) $("#uniqPanel").hidden = true;   // unique shots follow the saved scenes
+  if (r.preview_only) { $("#uniqPanel").hidden = true; $("#commPanel").hidden = true; }   // both follow the saved scenes
   if (devOn() && r.debug) renderDebug(r);
 }
 
@@ -259,6 +261,186 @@ $("#player").addEventListener("error", () => {
   $("#nowPlaying").hidden = false;
   $("#nowPlaying").textContent = "This browser cannot play this video format.";
 });
+
+// ------------------------------------------------------------------ commercial objects (phase 2A)
+const pct = (v) => `${Math.round(v * 100)}%`;
+async function loadCommercial(vid) {
+  const panel = $("#commPanel");
+  panel.hidden = false;
+  try { state.commercial = await api(`/api/videos/${vid}/commercial`); }
+  catch (e) { state.commercial = { status: "unavailable", reason: e.message, scenes: [], summary: {} }; }
+  if (devOn()) {
+    try {
+      const p = (await api("/api/commercial/report")).displayed;
+      state.commPrecision = p.reviewed ? `${pct(p.precision)} (${p.correct} correct / ${p.wrong} wrong, all reviewed videos)` : null;
+    } catch (_) {}
+  }
+  renderCommercial();
+}
+async function runCommercial() {
+  const btn = $("#commRun"), st = $("#commState"), bar = $("#commBarWrap");
+  btn.disabled = true; bar.hidden = false; $("#commBar").style.width = "2%";
+  st.textContent = "Starting… the first run downloads/loads the detection model.";
+  try {
+    let job = await post(`/api/videos/${state.vid}/commercial/analyze`);
+    while (job.status === "queued" || job.status === "running") {
+      st.textContent = `${job.stage_label || "Loading the detection model"}… ${Math.round(job.progress * 100)}%`;
+      $("#commBar").style.width = `${Math.max(2, Math.round(job.progress * 100))}%`;
+      await sleep(700);
+      job = await api(`/api/jobs/${job.id}`);
+    }
+    if (job.status === "error") throw new Error(job.error);
+    st.textContent = "";
+  } catch (e) {
+    state.commercial = { status: "unavailable", reason: e.message, scenes: [], summary: {} };
+    bar.hidden = true; btn.disabled = false;
+    return renderCommercial();
+  }
+  bar.hidden = true; btn.disabled = false;
+  await loadCommercial(state.vid);
+}
+$("#commRun").addEventListener("click", runCommercial);
+
+function renderCommercial() {
+  const c = state.commercial;
+  if (!c) return;
+  const dev = devOn(), s = c.summary || {}, btn = $("#commRun"), st = $("#commState");
+  const filter = state.commFilter || "all";
+  btn.hidden = true; st.textContent = "";
+  $("#commFilters").replaceChildren(); $("#commScenes").replaceChildren(); $("#commDev").hidden = true;
+  if (c.status === "unavailable") {
+    $("#commSummary").textContent = "Commercial analysis unavailable. Scenes and Unique Shots are not affected.";
+    st.textContent = dev && c.reason ? c.reason : "";
+    btn.hidden = false; btn.textContent = "Try again";
+    return;
+  }
+  if (c.status === "not_run") {
+    $("#commSummary").textContent = `Finds commercially relevant objects (fashion, electronics, cars, food & drink…) in each scene. Only ${s.unique_shots} unique shots are analysed, not every frame.`;
+    btn.hidden = false; btn.textContent = "Run Commercial Analysis";
+    return;
+  }
+  $("#commSummary").textContent = `${s.candidates_shown} commercial object${s.candidates_shown === 1 ? "" : "s"} in ${s.scenes} scene${s.scenes === 1 ? "" : "s"} · analysed ${s.frames_analysed} of ${s.frames_needed} unique shots`
+    + (c.status === "partial" ? " · incomplete" : "");
+  if (c.status === "partial") { btn.hidden = false; btn.textContent = "Analyse the rest"; st.textContent = dev && c.reason ? c.reason : ""; }
+
+  // filters: category counts over displayed candidates + scene contexts
+  const counts = {};
+  c.scenes.forEach((sc) => {
+    sc.candidates.filter((x) => x.displayed).forEach((x) => { counts[x.category] = (counts[x.category] || 0) + 1; });
+    const v = sc.context && sc.context.venue;
+    if (v && v.category) counts[v.category] = (counts[v.category] || 0) + 1;
+  });
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const chip = (id, name, n) => el("button", { class: "chip" + (filter === id ? " on" : ""), type: "button", role: "tab",
+    onclick: () => { state.commFilter = id; renderCommercial(); } }, name, el("span", { class: "n" }, String(n)));
+  $("#commFilters").replaceChildren(chip("all", "All", total),
+    ...c.categories.filter((k) => counts[k.id]).map((k) => chip(k.id, k.name, counts[k.id])));
+
+  const seek = (t) => { const p = $("#player"); state.previewEnd = null; p.currentTime = t + 0.01; $(".player-wrap").scrollIntoView({ behavior: "smooth", block: "center" }); };
+  const frameUrl = (b, extra) => `${c.frame_base}${b.shot_id}/${Math.round(b.position * 100)}${extra || ""}`;
+  $("#commScenes").replaceChildren(...c.scenes.map((sc, i) => {
+    const ctx = sc.context || {}, venue = ctx.venue, env = ctx.environment;
+    const all = sc.candidates.filter((x) => x.displayed || dev);
+    const cands = all.filter((x) => filter === "all" || x.category === filter);
+    const venueMatch = venue && venue.category && (filter === "all" || venue.category === filter);
+    if (filter !== "all" && !cands.length && !venueMatch) return null;
+    const grid = el("div", { class: "cgrid" });
+    cands.forEach((x) => {
+      const b = x.best;
+      const card = el("button", { class: "ccard" + (x.displayed ? "" : " hiddenc"), type: "button",
+        title: x.displayed ? "Click to see where it appears" : `Hidden from normal view: ${x.hidden_reason}` },
+        el("div", { class: "crop", style: `background-image:url(${frameUrl(b, `?box=${b.box.join(",")}&size=360`)})` },
+          el("span", { class: "seen" }, `Seen ×${x.seen_count}`)),
+        el("div", { class: "cbody" },
+          el("span", { class: "clabel" }, `${x.icon} ${x.label}`),
+          el("span", { class: "ccat" }, x.category_name),
+          el("span", { class: "cmeta" }, `Confidence: ${pct(x.detection_confidence)}`),
+          el("span", { class: "cmeta" }, `${fmt(x.first_seen)}–${fmt(x.last_seen)}`),
+          dev ? el("div", { class: "cdev" },
+            `raw "${x.debug.raw_label}" · det ${x.detection_confidence.toFixed(3)} (min ${x.debug.threshold})`, el("br"),
+            `relevance ${x.commercial_relevance.toFixed(2)} = base ${x.debug.relevance_factors.base} · size ${x.debug.relevance_factors.size} · centre ${x.debug.relevance_factors.centrality} · persist ${x.debug.relevance_factors.persistence}`, el("br"),
+            `box [${b.box.map((v) => v.toFixed(2)).join(", ")}] · shot #${b.shot_id}`, el("br"),
+            `unique: ${x.debug.unique_shot_ids.join(", ")}`,
+            x.displayed ? null : el("div", {}, `hidden: ${x.hidden_reason}`),
+            reviewButtons(x)) : null));
+      card.addEventListener("click", (ev) => {
+        if (ev.target.closest(".rev")) return;
+        const open = card.classList.contains("open");
+        grid.querySelectorAll(".cdetail").forEach((n) => n.remove());
+        grid.querySelectorAll(".ccard.open").forEach((n) => n.classList.remove("open"));
+        if (open) return;
+        card.classList.add("open");
+        const bx = b.box;
+        const tb = state.unique && state.unique.thumb_base;
+        const det = el("div", { class: "cdetail" },
+          el("div", {}, el("h5", {}, `${x.icon} ${x.label} · ${x.category_name}`),
+            el("div", { class: "cframe" }, el("img", { src: frameUrl(b, "?size=960"), alt: "", loading: "lazy" }),
+              el("div", { class: "bbox", style: `left:${bx[0] * 100}%;top:${bx[1] * 100}%;width:${(bx[2] - bx[0]) * 100}%;height:${(bx[3] - bx[1]) * 100}%` })),
+            el("p", { class: "muted small", style: "margin:8px 0 0" },
+              `Detected in ${x.detected_in_unique_shots} unique shot${x.detected_in_unique_shots > 1 ? "s" : ""}; those camera set-ups occur ${x.seen_count} time${x.seen_count > 1 ? "s" : ""} in this scene (${fmtDur(x.screen_time)} on screen). No brand or product is identified.`)),
+          el("div", {}, el("h5", {}, `Where it appears (${x.seen_count})`),
+            el("div", { class: "cocc" }, ...x.occurrences.map((o) => tb
+              ? shotTile({ thumb_base: tb }, o.shot_id, { cap: `${fmt(o.start)} → ${fmt(o.end)}`, badge: o.detected ? "analysed" : "",
+                  title: o.detected ? "Detected in this frame" : "Same camera set-up as an analysed shot", onclick: () => seek(o.start) })
+              : el("button", { class: "btn small", type: "button", onclick: () => seek(o.start) }, `${fmt(o.start)} → ${fmt(o.end)}`)))));
+        card.after(det);
+      });
+      grid.append(card);
+    });
+    const d = el("details", { class: "cscene", style: `--c:${colorFor(i)}` },
+      el("summary", {}, el("span", { class: "sname" }, `SCENE ${pad2(sc.scene_id)}`),
+        venue ? el("span", { class: "tag", title: `Scene context (confidence ${pct(venue.confidence)}). A property of the whole scene, not an object.` }, `${venue.icon || "📍"} ${venue.label}`) : null,
+        env ? el("span", { class: "tag soft" }, env.label) : null,
+        el("span", { class: "tag soft" }, `${sc.candidates.filter((x) => x.displayed).length} objects`),
+        ...sc.categories_present.map((k) => el("span", { class: "tag soft" }, k.name)),
+        dev ? el("span", { class: "muted small" }, `context: ${(ctx.ranked || []).map((r) => `${r.label} ${r.confidence.toFixed(2)}`).join(" · ")} · analysed ${sc.unique_shots_analysed}/${sc.unique_shots} unique shots`) : null),
+      cands.length ? grid : el("p", { class: "cempty" }, filter === "all" ? "No commercial objects found in this scene." : "Scene context only."),
+      dev ? missedBox(sc) : null);
+    d.open = state.commOpen ? state.commOpen.has(sc.scene_id) : i < 2;
+    d.addEventListener("toggle", () => {
+      state.commOpen = state.commOpen || new Set(c.scenes.slice(0, 2).map((z) => z.scene_id));
+      d.open ? state.commOpen.add(sc.scene_id) : state.commOpen.delete(sc.scene_id);
+    });
+    return d;
+  }).filter(Boolean));
+
+  if (dev) {
+    const m = c.model || {}, t = c.timings || {};
+    $("#commDev").hidden = false;
+    $("#commDev").replaceChildren(el("h4", {}, "Commercial analysis · developer"),
+      el("table", { class: "kv" }, ...[
+        ["Model", `${m.name || "?"} (${m.license || "?"})`], ["Version / device", `${m.version || "cached results"} · ${m.device || "not loaded"}`],
+        ["Taxonomy version · detector key", `${c.taxonomy_version} · ${m.detector_key}`],
+        ["Unique shots analysed", `${s.frames_analysed} of ${s.frames_needed} (inference avoided for ${s.inference_avoided_by_unique_shots} repeated shots)`],
+        ["Inference per frame", s.mean_seconds_per_frame != null ? `${s.mean_seconds_per_frame.toFixed(2)} s` : "—"],
+        ["This request", `${t.total} s (frames ${t.frames} · inference ${t.inference} · assembly ${t.assemble}); ${s.frames_from_cache} frames from cache, ${s.frames_inferred_now} inferred now`],
+        ["Shown / hidden candidates", `${s.candidates_shown} / ${s.candidates_hidden}`],
+        ["Thresholds", `confidence ≥ ${c.config.min_confidence}, relevance ≥ ${c.config.min_relevance}`],
+        ["Review precision so far", state.commPrecision || "mark detections Correct / Wrong to measure"],
+      ].map(([k, v]) => el("tr", {}, el("td", {}, k), el("td", {}, String(v))))));
+  }
+}
+function reviewButtons(x) {
+  const mk = (verdict, text, cls) => el("button", { type: "button", class: (x.review === verdict ? "on " : "") + cls,
+    onclick: async (ev) => { ev.stopPropagation(); await sendReview({ key: x.key, verdict: x.review === verdict ? null : verdict }); } }, text);
+  return el("div", { class: "rev" }, mk("correct", "✓ Correct", "ok"), mk("wrong", "✗ Wrong", "bad"));
+}
+function missedBox(sc) {
+  const input = el("input", { type: "text", placeholder: "Missed object, e.g. watch" });
+  const add = async () => { if (input.value.trim()) await sendReview({ missed_label: input.value.trim(), scene_id: sc.scene_id }); };
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") add(); });
+  return el("div", { class: "missed" }, "Missed:", ...(sc.missed || []).map((m) => el("span", { class: "tag" }, m.label)),
+    input, el("button", { class: "btn small ghost", type: "button", onclick: add }, "Add"));
+}
+async function sendReview(body) {
+  try {
+    if (!state.reviewer) state.reviewer = prompt("Reviewer name (stored with your verdicts):", "") || "";
+    const r = await post(`/api/videos/${state.vid}/commercial/review`, { ...body, reviewer: state.reviewer });
+    const p = r.precision;
+    state.commPrecision = p.reviewed ? `${pct(p.precision)} (${p.correct} correct / ${p.wrong} wrong, all reviewed videos)` : null;
+    await loadCommercial(state.vid);
+  } catch (e) { $("#commState").textContent = e.message; }
+}
 
 // ------------------------------------------------------------------ unique shots
 const GROUP_COLORS = ["#f2b544", "#6cb4a8", "#c97b9d", "#7d9bd8", "#d98b5f", "#9fbf6b", "#b49ad9", "#d9c48b", "#e07a7a", "#5fb0d9"];
@@ -364,7 +546,7 @@ async function correction(body) {
   try {
     const r = await post(`/api/videos/${state.vid}/corrections`, body);
     if (devOn()) return loadResult(state.vid);
-    state.result = r; renderResult(r); loadUnique(state.vid);
+    state.result = r; renderResult(r); loadUnique(state.vid).then(() => loadCommercial(state.vid));
   } catch (e) { $("#editState").textContent = e.message; }
 }
 $("#splitBtn").addEventListener("click", () => correction({ op: "split", at: $("#player").currentTime }));

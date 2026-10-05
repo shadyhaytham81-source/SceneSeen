@@ -139,3 +139,117 @@ def test_relocated_helper(tmp_path):
 
     assert relocated("/gone/elsewhere/missing.mp4", tmp_path / "uploads") == Path("/gone/elsewhere/missing.mp4")
     assert relocated(tmp_path / "uploads" / "abc.mp4") == tmp_path / "uploads" / "abc.mp4"
+
+
+# ---------------------------------------------------------------- Phase 2A: commercial endpoints
+
+def _analysed(c, tiny_video):
+    import time
+
+    with open(tiny_video, "rb") as f:
+        vid = c.post("/api/upload", files={"file": (ARABIC_NAME, f, "video/mp4")}).json()["video_id"]
+    if c.get(f"/api/videos/{vid}/result").status_code != 200:
+        job = c.post(f"/api/videos/{vid}/analyze").json()
+        for _ in range(600):
+            job = c.get(f"/api/jobs/{job['id']}").json()
+            if job["status"] in ("done", "error"):
+                break
+            time.sleep(0.5)
+        assert job["status"] == "done", job
+    return vid
+
+
+class _PhoneEverywhere:
+    """Stands in for the real detector: one confident smartphone per frame."""
+    calls = 0
+
+    def detect(self, images, prompts):
+        type(self).calls += len(images)
+        return [[(prompts.index("smartphone"), 0.83, [0.30, 0.30, 0.60, 0.70])] for _ in images]
+
+    def describe(self):
+        return {"name": "fake-detector", "version": "test", "device": "cpu", "load_seconds": 0.0}
+
+
+def test_commercial_unknown_video_is_404(client):
+    c, _ = client
+    assert c.get("/api/videos/0123456789abcdef/commercial").status_code == 404
+
+
+@pytest.mark.slow
+def test_commercial_analysis_via_api(client, tiny_video, monkeypatch):
+    import time
+
+    from sceneseen.commercial import analysis as commercial_analysis
+
+    c, app_module = client
+    vid = _analysed(c, tiny_video)
+    scenes_before = c.get(f"/api/videos/{vid}/result").json()["scenes"]
+
+    first = c.get(f"/api/videos/{vid}/commercial").json()
+    assert first["status"] == "not_run" and first["summary"]["candidates_shown"] == 0     # nothing runs on GET
+
+    _PhoneEverywhere.calls = 0
+    monkeypatch.setattr(commercial_analysis, "get_detector", lambda *a, **k: _PhoneEverywhere())
+    job = c.post(f"/api/videos/{vid}/commercial/analyze").json()
+    for _ in range(200):
+        job = c.get(f"/api/jobs/{job['id']}").json()
+        if job["status"] in ("done", "error"):
+            break
+        time.sleep(0.2)
+    assert job["status"] == "done", job
+    inferred = _PhoneEverywhere.calls
+    assert inferred >= 1
+
+    t = time.perf_counter()
+    rec = c.get(f"/api/videos/{vid}/commercial").json()
+    assert time.perf_counter() - t < 2.0                                   # cached: no model, near instant
+    assert _PhoneEverywhere.calls == inferred                              # ... and no new inference
+    assert rec["status"] == "ready" and rec["video"] == ARABIC_NAME
+    assert rec["summary"]["unique_shots"] == inferred                      # one inference per unique shot
+    cands = [x for sc in rec["scenes"] for x in sc["candidates"] if x["displayed"]]
+    assert cands and all(x["type_id"] == "smartphone" and x["category_name"] == "Electronics" for x in cands)
+    x = cands[0]
+    assert x["seen_count"] >= 1 and x["occurrences"] and 0 < x["commercial_relevance"] <= 1
+    assert {"context", "categories_present", "candidates"} <= set(rec["scenes"][0])
+    assert "box" not in (rec["scenes"][0]["context"].get("venue") or {})   # scene context has no bounding box
+
+    b = x["best"]
+    url = f"{rec['frame_base']}{b['shot_id']}/{round(b['position'] * 100)}"
+    full = c.get(url)
+    crop = c.get(url, params={"box": ",".join(str(v) for v in b["box"]), "size": 200})
+    assert full.status_code == 200 and crop.status_code == 200
+    assert crop.headers["content-type"] == "image/jpeg" and len(crop.content) < len(full.content)
+    assert c.get(f"{rec['frame_base']}9999/50").status_code == 404
+
+    # review: Correct / Wrong / Missed -> precision, stored under the (Arabic) video name
+    r = c.post(f"/api/videos/{vid}/commercial/review", json={"key": x["key"], "verdict": "correct", "reviewer": "t"})
+    assert r.status_code == 200 and r.json()["precision"]["correct"] == 1
+    assert c.post(f"/api/videos/{vid}/commercial/review", json={"key": "nope", "verdict": "wrong"}).status_code == 404
+    assert c.post(f"/api/videos/{vid}/commercial/review", json={"key": x["key"], "verdict": "maybe"}).status_code == 400
+    c.post(f"/api/videos/{vid}/commercial/review", json={"missed_label": "watch", "scene_id": x["scene_id"], "reviewer": "t"})
+    again = c.get(f"/api/videos/{vid}/commercial").json()
+    mine = next(y for sc in again["scenes"] for y in sc["candidates"] if y["key"] == x["key"])
+    assert mine["review"] == "correct" and again["scenes"][0]["missed"][0]["label"] == "watch"
+    rep = c.get("/api/commercial/report").json()
+    assert rep["displayed"]["precision"] == 1.0 and rep["missed_reported"] == 1
+    stored = list((app_module.CFG.paths.ground_truth_dir / "commercial_reviews").glob("*.json"))
+    assert len(stored) == 1 and stored[0].stem in ARABIC_NAME
+
+    # Phase 1 is untouched by all of this
+    assert c.get(f"/api/videos/{vid}/result").json()["scenes"] == scenes_before
+
+
+@pytest.mark.slow
+def test_commercial_failure_never_breaks_phase1(client, tiny_video, monkeypatch):
+    c, app_module = client
+    vid = _analysed(c, tiny_video)
+
+    def explode(*a, **k):
+        raise RuntimeError("model exploded")
+
+    monkeypatch.setattr(app_module, "_commercial", explode)
+    r = c.get(f"/api/videos/{vid}/commercial")
+    assert r.status_code == 200 and r.json()["status"] == "unavailable" and "model exploded" in r.json()["reason"]
+    assert c.get(f"/api/videos/{vid}/result").status_code == 200           # scenes still served
+    assert c.get(f"/api/videos/{vid}/unique-shots").status_code == 200     # unique shots still served

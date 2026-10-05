@@ -77,3 +77,17 @@ rep_w_exposure = 0.10
 [boundary_model]
 # Optional learned scene-boundary classifier (python -m sceneseen train). Empty = hand-designed rule.
 path = ""
+
+[commercial]
+# Phase 2A: commercial objects + scene context. Runs on top of Phase 1 and never changes it.
+detector = "owlv2"               # owlv2 (google/owlv2-base-patch16-ensemble, Apache-2.0) | grounding_dino
+device = "auto"                  # auto -> cuda / mps / cpu (falls back to CPU if the accelerator fails)
+batch_size = 4
+frame_long_side = 1280           # representative frames are extracted at this size
+frame_positions = [0.5]          # one frame per unique shot; [0.15, 0.5, 0.85] = 3x the time for ~7 more borderline objects
+store_threshold = 0.10           # detections kept in the cache, so display thresholds can change without re-running the model
+min_confidence = 0.40            # global display floor; each object type adds its own tier (commercial/taxonomy.py)
+min_relevance = 0.45             # commercial relevance needed to be shown
+describe_colors = true           # "White sneakers" when one colour clearly dominates
+context_min_confidence = 0.60    # scene venue is reported only when this sure ...
+context_min_margin = 0.15        # ... and this far ahead of the runner-up
