@@ -1,4 +1,4 @@
-"""Build a DEMO catalogue from this project's own analysed videos (for trying the Phase 2B workflow).
+"""Build a DEMO catalogue from this project's own analysed videos (for trying the catalogue and the Identify Product workflow).
 
     python scripts/build_demo_catalog.py --config data/demo/demo.toml [--max-products 80]
 
@@ -6,9 +6,7 @@ Every product is a crop of an object SceneSeen detected in one of the analysed v
 a brand whose name ends in "(demo)". These are NOT real products and the images are film frames:
 the catalogue lives only under data/ (git-ignored) and must never be committed or published.
 
-Because the references come from the same footage, an object matches "its own" demo product
-trivially. The demo proves the workflow, not the accuracy; accuracy is measured held-out in
-scripts/product_matching_study.py.
+The demo catalogue only gives the manual "Identify Product" workflow something to search in.
 """
 from __future__ import annotations
 
@@ -28,7 +26,24 @@ from sceneseen.catalog.images import ImageStore     # noqa: E402
 from sceneseen.commercial import frames as F        # noqa: E402
 from sceneseen.commercial import taxonomy as T      # noqa: E402
 from sceneseen.config import catalog_paths, load_config  # noqa: E402
-from sceneseen.matching.matcher import crop_rgb, select_occurrences  # noqa: E402
+
+
+def select_occurrences(c: dict, limit: int) -> list[dict]:
+    """The object's most confident detections, one per shot."""
+    seen, out = set(), []
+    for d in sorted(c.get("debug", {}).get("detections", []), key=lambda d: -d["score"]):
+        if d["shot_id"] not in seen:
+            seen.add(d["shot_id"])
+            out.append(d)
+    return out[:limit]
+
+
+def crop_rgb(frame, box, pad):
+    h, w = frame.shape[:2]
+    x1, y1, x2, y2 = box
+    px, py = (x2 - x1) * pad, (y2 - y1) * pad
+    return frame[int(max(0, (y1 - py) * h)):int(min(h, (y2 + py) * h)), int(max(0, (x1 - px) * w)):int(min(w, (x2 + px) * w))].copy()
+
 
 BRANDS = {"fashion": "Nile Wear (demo)", "accessories": "Cairo Accessories (demo)", "electronics": "Delta Tech (demo)",
           "automotive": "Sahara Motors (demo)", "food_beverage": "Fayoum Foods (demo)", "furniture": "بيت الديكور (demo)",

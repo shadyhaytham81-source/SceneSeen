@@ -100,9 +100,10 @@ database_url = "sqlite:///data/catalog/catalog.db"
 images_dir = "data/catalog/images"     # content-addressed product images (sha256 file names)
 
 [matching]
-# Phase 2B: detected object -> ranked catalogue candidates. Every number below was measured, not guessed:
-# scripts/product_matching_study.py, reports/product_matching/, docs/MATCHING.md
-embedder = "openclip_b32"        # same weights Phase 1 already uses; DINOv2 small/base were not better (docs/MATCHING.md)
+# EXPERIMENTAL — DISABLED. Automatic product matching is NOT part of SceneSeen's workflow: products are
+# identified by people (docs/IDENTIFICATION.md). Nothing in the app, the CLI or the pipeline reads this
+# section; only the research scripts do (scripts/product_matching_study.py, docs/EXPERIMENTAL_MATCHING.md).
+embedder = "openclip_b32"        # same weights Phase 1 already uses; DINOv2 small/base were not better (docs/EXPERIMENTAL_MATCHING.md)
 device = "auto"
 batch_size = 32
 colour_weight = 0.5              # score = cosine + colour_weight * colour-histogram intersection

@@ -16,8 +16,8 @@ from typing import Callable
 import numpy as np
 from sqlalchemy import select
 
-from ..catalog.db import Database, ImageEmbedding, Product, ProductImage
-from ..catalog.images import ImageError, ImageStore
+from ...catalog.db import Database, ImageEmbedding, Product, ProductImage
+from ...catalog.images import ImageError, ImageStore
 from .signals import COLOUR_KEY, colour_signature
 
 log = logging.getLogger(__name__)

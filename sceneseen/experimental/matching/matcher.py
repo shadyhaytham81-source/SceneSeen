@@ -5,9 +5,9 @@ Four separate things are kept separate all the way to the UI (never merged into 
     detection_confidence   how sure the detector is that the object is there / correctly typed
     commercial_relevance   how commercially interesting that kind of object is in this scene
     match_confidence       how likely the BEST catalogue candidate is the same product
-    verification_status    what a human decided (verification.py)
+    identification         what a human decided (sceneseen/catalog/identification.py)
 
-Matching evidence (each one measured in scripts/product_matching_study.py, see docs/MATCHING.md):
+Matching evidence (each one measured in scripts/product_matching_study.py, see docs/EXPERIMENTAL_MATCHING.md):
 
     category gating        only products of a compatible object type are compared at all
     embedding cosine       OpenCLIP image embedding of the object crop vs. reference images
@@ -28,8 +28,8 @@ from typing import Callable
 
 import numpy as np
 
-from ..commercial import frames as F
-from ..config import MatchingConfig
+from ...commercial import frames as F
+from ...config import MatchingConfig
 from .embedder import EmbedderUnavailable
 from .index import CatalogIndex
 from .signals import colour_signature, crop_weight

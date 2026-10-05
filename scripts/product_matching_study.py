@@ -1,4 +1,6 @@
-"""Calibration study for product matching (Phase 2B).
+"""EXPERIMENTAL — DISABLED research (automatic product matching is not part of SceneSeen; docs/EXPERIMENTAL_MATCHING.md).
+
+Calibration study for product matching (Phase 2B).
 
 There is no licensed product catalogue yet, so the study uses the project's own footage:
 detected object crops are the "products", and the question is whether an embedding puts two
@@ -164,7 +166,7 @@ def _auc(pos: np.ndarray, neg: np.ndarray) -> float:
 def cmd_evaluate(cfg, models: list[str]) -> None:
     from PIL import Image
 
-    from sceneseen.matching.embedder import EmbedderUnavailable, get_embedder
+    from sceneseen.experimental.matching.embedder import EmbedderUnavailable, get_embedder
 
     crops = json.loads((WORK / "crops.json").read_text(encoding="utf-8"))
     idx = {r["id"]: i for i, r in enumerate(crops)}
@@ -228,7 +230,7 @@ def cmd_evaluate(cfg, models: list[str]) -> None:
         g1, g3, present, correct, absent = retrieval(True)
         u1, u3, *_ = retrieval(False)
         # colour inside retrieval: score = cosine + w * colour, w chosen on pairs from OTHER videos
-        best_w, c1_by_w = 0.0, {}
+        c1_by_w = {}
         for w in (0.0, 0.1, 0.2, 0.3, 0.5):
             c1_by_w[w] = retrieval(True, sim + w * CM)[0]
         lov = []
@@ -350,8 +352,8 @@ def cmd_calibrate(cfg, name: str) -> None:
     """
     from sklearn.linear_model import LogisticRegression
 
-    from sceneseen.matching.index import CatalogIndex
-    from sceneseen.matching.signals import crop_weight
+    from sceneseen.experimental.matching.index import CatalogIndex
+    from sceneseen.experimental.matching.signals import crop_weight
 
     crops = json.loads((WORK / "crops.json").read_text(encoding="utf-8"))
     idx = {r["id"]: i for i, r in enumerate(crops)}

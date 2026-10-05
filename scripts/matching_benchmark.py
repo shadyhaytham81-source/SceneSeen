@@ -1,4 +1,6 @@
-"""Catalogue scaling benchmark for Phase 2B (no model needed: synthetic embeddings in a real database).
+"""EXPERIMENTAL — DISABLED research (automatic product matching is not part of SceneSeen; docs/EXPERIMENTAL_MATCHING.md).
+
+Catalogue scaling benchmark for Phase 2B (no model needed: synthetic embeddings in a real database).
 
     python scripts/matching_benchmark.py [--sizes 100 1000 10000] [--images 3]
 
@@ -26,9 +28,9 @@ from sceneseen.catalog import service as S                      # noqa: E402
 from sceneseen.catalog.db import Brand, Database, ImageEmbedding, Product, ProductImage  # noqa: E402
 from sceneseen.commercial import taxonomy as T                  # noqa: E402
 from sceneseen.config import MatchingConfig                     # noqa: E402
-from sceneseen.matching import matcher                          # noqa: E402
-from sceneseen.matching.index import CatalogIndex, get_index    # noqa: E402
-from sceneseen.matching.signals import COLOUR_DIM, COLOUR_KEY   # noqa: E402
+from sceneseen.experimental.matching import matcher                          # noqa: E402
+from sceneseen.experimental.matching.index import CatalogIndex, get_index    # noqa: E402
+from sceneseen.experimental.matching.signals import COLOUR_DIM, COLOUR_KEY   # noqa: E402
 
 KEY = "bench:512"
 

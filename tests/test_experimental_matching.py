@@ -1,5 +1,8 @@
-"""Phase 2B matching, verification and final output, with a fake embedder (no model download)."""
-import json
+"""EXPERIMENTAL — DISABLED automatic product matching (sceneseen/experimental/matching).
+
+These tests only keep the research code working. The matcher is not part of the SceneSeen
+workflow: tests/test_identification.py checks that the app never imports or runs it.
+"""
 import time
 
 import numpy as np
@@ -12,12 +15,10 @@ from sceneseen.catalog.images import ImageStore
 from sceneseen.commercial import taxonomy as T
 from sceneseen.commercial.frames import frame_name
 from sceneseen.config import MatchingConfig
-from sceneseen.matching import matcher as M
-from sceneseen.matching import products as P
-from sceneseen.matching import verification as V
-from sceneseen.matching.index import CatalogIndex, get_index
-from sceneseen.matching.signals import COLOUR_DIM, COLOUR_KEY, colour_signature, colour_similarity, crop_weight
-from sceneseen.matching.store import CropCache, ensure_catalog_embeddings, missing_catalog_images
+from sceneseen.experimental.matching import matcher as M
+from sceneseen.experimental.matching.index import CatalogIndex, get_index
+from sceneseen.experimental.matching.signals import COLOUR_DIM, COLOUR_KEY, colour_signature, colour_similarity, crop_weight
+from sceneseen.experimental.matching.store import CropCache, ensure_catalog_embeddings, missing_catalog_images
 
 from .fakes import FakeEmbedder, jpeg, pattern
 from .test_commercial import CFG as CCFG
@@ -254,8 +255,6 @@ def test_product_not_in_catalogue_is_not_a_confident_match(tmp_path, cat):
     m = M.match_video(com, cdir, fdir, get_index(db, emb.key), emb, CFG)["matches"][phone_key(com)]
     assert m["state"] in ("no_reliable_match", "uncertain")      # the nearest product is NOT presented as the product
     assert m["match_confidence"] < CFG.possible_confidence
-    obj = P.scene_products(com, {"matches": {phone_key(com): m}}, {}, db)["scenes"][0]["objects"][0]
-    assert obj["status"] in ("unknown", "needs_review") and obj["product"] is None
 
 
 def test_lookalikes_are_not_high_confidence(tmp_path, cat):
@@ -283,10 +282,7 @@ def test_no_products_of_that_kind_is_generic_object(tmp_path, cat):
     out = M.match_video(com, cdir, fdir, get_index(db, emb.key), emb, CFG)
     w = out["matches"][phone_key(com, "watch")]
     assert w["state"] == "no_reliable_match" and w["candidates"] == [] and w["eligible_products"] == 0
-    res = P.scene_products(com, out, {}, db)
-    by = {o["type_id"]: o for o in res["scenes"][0]["objects"]}
-    assert by["watch"]["status"] == "no_catalog" and by["watch"]["status_label"] == "Generic object"
-    assert by["smartphone"]["status"] == "high_confidence_candidate"
+    assert out["matches"][phone_key(com)]["state"] == "high_confidence"
 
 
 def test_empty_catalogue(tmp_path, cat):
@@ -296,7 +292,6 @@ def test_empty_catalogue(tmp_path, cat):
     com, _ = run(tmp_path, {0: [BIG_PHONE]}, video=video)
     out = M.match_video(com, cdir, fdir, get_index(db, emb.key), emb, CFG)
     assert out["status"] == "ready" and out["matches"][phone_key(com)]["candidates"] == []
-    assert P.scene_products(com, out, {}, db)["status_counts"]["no_catalog"] == 1
 
 
 # ---------------------------------------------------------------- caching + failures
@@ -323,8 +318,6 @@ def test_embedder_failure_degrades_instead_of_raising(tmp_path, cat):
     bad = FakeEmbedder(fail=True)
     out = M.match_video(com, cdir, fdir, get_index(db, bad.key), bad, CFG)
     assert out["status"] == "unavailable" and "offline" in out["reason"] and out["matches"] == {}
-    res = P.scene_products(com, out, {}, db)                     # commercial objects are still listed
-    assert res["scenes"][0]["objects"][0]["status"] == "not_matched" and res["scenes"][0]["objects"][0]["label"]
 
 
 def test_not_run_without_inference_and_missing_frames(tmp_path, cat):
@@ -338,69 +331,3 @@ def test_not_run_without_inference_and_missing_frames(tmp_path, cat):
 
 
 # ---------------------------------------------------------------- human verification + audit trail
-
-def cand(com):
-    c = next(c for sc in com["scenes"] for c in sc["candidates"] if c["type_id"] == "smartphone")
-    return {**c, "scene_id": com["scenes"][0]["scene_id"]}
-
-
-def test_confirm_change_no_match_clear_with_audit_trail(tmp_path, cat):
-    db, store, emb, com, cdir, fdir, ids = setup_match(tmp_path, cat, phone_seed=3)
-    match = M.match_video(com, cdir, fdir, get_index(db, emb.key), emb, CFG)["matches"][phone_key(com)]
-    c, models = cand(com), {"embedder": emb.key, "detector": "fake", "calibration": CFG.calibration_version}
-    v = V.decide(db, "vid", c, "confirm", "shady", product_id=ids[3], match=match, models=models, video_name="فيديو.mp4")
-    assert v["status"] == "confirmed" and v["product"]["name"] == "Phone 3" and v["source"] == "suggestion"
-    assert v["suggestion_rank"] == 1 and v["match_confidence"] == match["match_confidence"] and v["match_state"] == "high_confidence"
-    assert v["detection_confidence"] == c["detection_confidence"] and v["models"]["embedder"] == emb.key
-    assert v["decided_by"] == "shady" and v["decided_at"]
-    v = V.decide(db, "vid", c, "confirm", "mona", product_id=ids[6], match=match, models=models)       # a different product
-    assert v["product"]["name"] == "Phone 6" and v["decided_by"] == "mona"
-    outside = S.create_product(db, S.create_brand(db, "Else")["id"], name="Hand picked", category="electronics")
-    v = V.decide(db, "vid", c, "confirm", "mona", product_id=outside["id"], match=match, source="search")
-    assert v["source"] == "search" and v["suggestion_rank"] is None and v["match_confidence"] is None
-    v = V.decide(db, "vid", c, "no_match", "shady", match=match)
-    assert v["status"] == "no_match" and v["product"] is None
-    assert V.decide(db, "vid", c, "clear", "shady") is None and V.for_video(db, "vid") == {}
-    ev = V.events(db, "vid", c["key"])
-    assert [e["action"] for e in ev] == ["clear", "no_match", "change", "change", "confirm"]          # newest first
-    assert [e["actor"] for e in ev] == ["shady", "shady", "mona", "mona", "shady"]
-    assert ev[-1]["payload"]["match_confidence"] == match["match_confidence"] and ev[-1]["payload"]["models"]["embedder"] == emb.key
-    assert ev[2]["previous_product_id"] == ids[6] and ev[1]["previous_status"] == "confirmed" and all(e["at"] for e in ev)
-
-
-def test_verification_rules(cat):
-    db, _ = cat
-    c = {"key": "k1", "type_id": "smartphone", "label": "Smartphone"}
-    with pytest.raises(V.VerificationError):
-        V.decide(db, "vid", c, "confirm", "", product_id=1)              # nobody
-    with pytest.raises(V.VerificationError):
-        V.decide(db, "vid", c, "confirm", "shady")                       # no product
-    with pytest.raises(V.VerificationError):
-        V.decide(db, "vid", c, "confirm", "shady", product_id=999)       # product does not exist
-    with pytest.raises(V.VerificationError):
-        V.decide(db, "vid", c, "approve", "shady")
-    assert V.decide(db, "vid", c, "clear", "shady") is None and V.events(db, "vid") == []
-
-
-def test_final_scene_output_keeps_the_four_signals_separate(tmp_path, cat):
-    db, store, emb, com, cdir, fdir, ids = setup_match(tmp_path, cat, phone_seed=4, extra=[(BIG_WATCH[2], 30)])
-    out = M.match_video(com, cdir, fdir, get_index(db, emb.key), emb, CFG)
-    c = cand(com)
-    V.decide(db, "vid", c, "confirm", "shady", product_id=ids[4], match=out["matches"][c["key"]])
-    res = P.scene_products(com, out, V.for_video(db, "vid"), db)
-    scene = res["scenes"][0]
-    phone = next(o for o in scene["objects"] if o["type_id"] == "smartphone")
-    for field in ("detection_confidence", "commercial_relevance", "match_confidence", "verification_status", "status"):
-        assert field in phone
-    assert phone["status"] == "confirmed" and phone["verification_status"] == "confirmed"
-    assert phone["product"]["name"] == "Phone 4" and phone["match_state"] == "high_confidence"
-    assert phone["candidates"][0]["product"]["brand"] == "Acme" and phone["candidates"][0]["matched_image"].startswith("/api/catalog/images/")
-    assert "context" in scene and res["status_counts"]["confirmed"] == 1 and res["status_counts"]["no_catalog"] == 1
-    exp = P.export_view(res)["scenes"][0]
-    row = next(o for o in exp["objects"] if o["type_id"] == "smartphone")
-    assert row["product"] == "Phone 4" and row["brand"] == "Acme" and row["verified_by"] == "shady" and row["status"] == "confirmed"
-    generic = next(o for o in exp["objects"] if o["type_id"] == "watch")
-    assert generic["product"] is None and generic["status"] == "no_catalog"
-    json.dumps(exp)                                                      # plain JSON
-    # without a catalogue database the objects still come out (generic)
-    assert P.scene_products(com, None, {}, None)["status_counts"]["not_matched"] == 2

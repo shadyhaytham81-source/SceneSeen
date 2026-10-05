@@ -4,7 +4,7 @@ import io
 import numpy as np
 from PIL import Image
 
-from sceneseen.matching.embedder import EmbedderUnavailable
+from sceneseen.experimental.matching.embedder import EmbedderUnavailable
 
 
 class FakeEmbedder:

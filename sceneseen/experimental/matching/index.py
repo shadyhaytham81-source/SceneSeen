@@ -16,8 +16,8 @@ import threading
 import numpy as np
 from sqlalchemy import func, select
 
-from ..catalog.db import Brand, Database, ImageEmbedding, Product, ProductImage
-from ..commercial import taxonomy as T
+from ...catalog.db import Brand, Database, ImageEmbedding, Product, ProductImage
+from ...commercial import taxonomy as T
 from .signals import COLOUR_DIM, COLOUR_KEY, colour_similarity
 from .store import from_blob
 
