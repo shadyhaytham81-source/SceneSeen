@@ -12,7 +12,7 @@ Video → Scenes → Unique Shots ─► 1 representative frame per unique shot 
 
 It answers "which commercially relevant things are in this scene, and where do they appear?". It does **not**
 identify brands or products ("sneakers", never "Nike Air Force 1"). That is Phase 2B, built on top of it:
-[CATALOG.md](CATALOG.md) and [MATCHING.md](MATCHING.md).
+[CATALOG.md](CATALOG.md) and [IDENTIFICATION.md](IDENTIFICATION.md): people identify the products; SceneSeen never guesses them.
 
 ## Two levels of understanding
 
@@ -202,9 +202,9 @@ rebuilt.
 | `GET /api/commercial/taxonomy` | object types per category and the verdict list |
 | `GET /api/commercial/report` | precision of reviewed detections |
 
-Each candidate carries what Phase 2B (catalogue matching) and Phase 3 (placement opportunities) need: type,
+Each candidate carries what Phase 2B (product identification) and Phase 3 (placement opportunities) need: type,
 category, confidence, relevance, colour attribute, the best frame + box (crop source), and every occurrence with
-timestamps and unique-shot ids. Phase 2B is implemented (docs/MATCHING.md); Phase 3 is not.
+timestamps and unique-shot ids. Phase 2B (human identification, docs/IDENTIFICATION.md) is implemented; Phase 3 is not.
 
 CLI: `python -m sceneseen commercial VIDEO [--all]` writes `commercial.json` next to `scenes.json`.
 

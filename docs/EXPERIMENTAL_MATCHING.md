@@ -1,4 +1,25 @@
-# Phase 2B — Product Matching, Confidence and Human Verification
+# EXPERIMENTAL — DISABLED: Automatic Product Matching
+
+> **This is not part of SceneSeen.** Automatic exact-product matching was built, measured, and then taken out of
+> the workflow (2026-10-05) because it is not reliable enough: the right product was ranked first in about two
+> thirds of the cases, only about a quarter of real matches reached a trustworthy confidence, and no real product
+> catalogue was ever tested. SceneSeen's detector finds generic objects; **people identify products**
+> ([IDENTIFICATION.md](IDENTIFICATION.md)).
+>
+> The code is kept, isolated, in `sceneseen/experimental/matching/` for later research. It:
+> - is **not imported** by the server, the CLI or the analysis pipeline (enforced by `tests/test_identification.py`);
+> - never runs automatically, never assigns a product, never appears in the UI or in the scene output;
+> - adds no latency and loads no model in normal use; its endpoints (`/products/match`, `/products/verify`,
+>   `/api/catalog/embed`, `/api/catalog/status`) were removed;
+> - can only be run by hand: `scripts/product_matching_study.py` and `scripts/matching_benchmark.py`.
+>
+> **When to look at it again:** once a few hundred human identifications exist. They are real ground truth
+> (object crop → catalogue product), which this study never had. Re-run the study against them; bring matching back
+> only as a *suggestion that a person confirms*, and only if "right product in the top 3" and the precision of the
+> confident band hold up on real catalogue photos.
+>
+> Everything below is the original research write-up, unchanged except for file paths. Where it says "the UI",
+> "Match Products", "human verification" or "API", it describes the removed integration, not the current product.
 
 ```
 commercial object (Phase 2A)                               catalogue (docs/CATALOG.md)
@@ -57,7 +78,7 @@ below are the best available estimate, not a guarantee.
   (below) it puts the right product first in 73.8 % of cases instead of 67.1 %, with the same precision in the
   high-confidence band. It was trained on product photos, so its advantage on a real catalogue is probably
   larger than this film-crop study shows; that has to be measured with real product images. It is available now
-  as a profile: `SCENESEEN_CONFIG=config/matching_marqo.toml` (own calibrated confidence model).
+  as a profile: `config/matching_marqo.toml` (own calibrated confidence model).
 - **Ensembles** gain 6–8 points for twice the cost and memory. Not adopted.
 - Not evaluated: larger CLIP variants (ViT-L, 1.7 GB) and paid embedding APIs (local-first, no paid services).
 

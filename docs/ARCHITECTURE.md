@@ -94,8 +94,9 @@ Phase 2 (objects, clothing, places per scene) plugs in without a rewrite:
 - The web layer is a thin API over the package, and new endpoints/panels are additive.
 
 Both parts of Phase 2 were added exactly this way: [COMMERCIAL.md](COMMERCIAL.md) (objects and scene context) and
-[CATALOG.md](CATALOG.md) / [MATCHING.md](MATCHING.md) (catalogue, product matching, verification). Dependencies
-point one way only: `matching` → `catalog`, `commercial` → Phase 1. Phase 1 imports none of them.
+[CATALOG.md](CATALOG.md) / [IDENTIFICATION.md](IDENTIFICATION.md) (catalogue, human product identification).
+Dependencies point one way only: `catalog` → `commercial` (taxonomy) → Phase 1. Phase 1 imports none of them, and
+nothing imports `sceneseen/experimental/`.
 
 ## Scaling notes
 For 45–60 min episodes: decoding is streamed, TransNetV2 holds 48×27 frames (≈ 350 MB for 90k frames), and

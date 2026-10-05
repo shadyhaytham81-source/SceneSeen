@@ -159,13 +159,14 @@ category. No brands or products are identified. Results are cached, so reopening
 unavailable the page says so and everything else keeps working. Details: [docs/COMMERCIAL.md](docs/COMMERCIAL.md).
 
 **Catalog and Products (Phase 2B):** open **Catalog** in the top bar to add brands and products (name, category,
-object type, SKU, link, price, several photos each). Back on a video, click **Match Products**: every commercial
-object is compared with the catalogue products of its kind and gets ranked candidates and an honest state (High
-confidence, Possible match, Uncertain, or Unknown product). Open an object to **Confirm** a candidate, say **No
-match**, **Search catalog**, or **Change** the product; every decision is recorded with who and when. **Export
-products** gives the confirmed products per scene. Nothing is ever confirmed automatically. The catalogue is a
-local SQLite file under `data/catalog/`. Details: [docs/CATALOG.md](docs/CATALOG.md),
-[docs/MATCHING.md](docs/MATCHING.md).
+object type, SKU, link, price, variants, several photos each). On a video, every detected commercial object has
+**Identify Product**: a panel shows the object, its scene and its occurrence images, and a person picks the brand,
+the product and optionally the variant, then **Confirm Product**. The product list is filtered to what that kind
+of object could be and searchable by name or SKU. A brand alone is a valid answer; a missing product can be
+created and linked on the spot; an object can be marked Unknown product, No specific product or Not commercially
+useful. Every change is kept in a history. **Export products** gives the human-identified products per scene.
+**SceneSeen never guesses a brand or a product.** Details: [docs/IDENTIFICATION.md](docs/IDENTIFICATION.md),
+[docs/CATALOG.md](docs/CATALOG.md).
 
 **Reviewing detections:** switch on **Review** in the Commercial Objects panel to mark each object Correct, Wrong,
 Unsure, Wrong label (and choose the right one), Not useful, Unclear image or Duplicate.
@@ -184,9 +185,7 @@ python -m sceneseen train                                # train + validate the 
 python -m sceneseen commercial path/to/video.mp4         # Phase 2A: commercial objects + scene context
 python -m sceneseen commercial-report                    # precision of reviewed commercial detections
 python scripts/commercial_benchmark.py --device mps      # detector speed and memory on this machine
-python -m sceneseen products path/to/video.mp4           # Phase 2B: match objects against the catalogue, write products.json
-python scripts/matching_benchmark.py                     # catalogue scaling: 100 / 1,000 / 10,000 products
-python scripts/product_matching_study.py calibrate       # re-fit the match-confidence model
+python -m sceneseen products path/to/video.mp4           # Phase 2B: products per scene from human identifications
 python scripts/build_demo_catalog.py --config data/demo/demo.toml   # demo catalogue from analysed videos (local only)
 python scripts/error_analysis.py                         # diagnose every false/missed boundary
 python scripts/unique_shots_study.py evaluate            # re-run the Unique Shots similarity comparison
@@ -235,11 +234,10 @@ thresholds takes milliseconds.
 
 Phase 1 (scenes + Unique Shots) is built, tested and evaluated: **F1@±2s 0.68** on dev, 0.81 on validation.
 Phase 2A (commercial scene understanding) is built on top of it: **84.9 % precision** of displayed objects on
-held-out videos. Phase 2B (catalogue, product matching, human verification) is built on a feature branch:
-"high confidence" matches were right 93 % of the time in a held-out study, and no real product catalogue has been
-tested yet. Placement opportunities and viewer features are **not** started. See
-[PROJECT_STATUS.md](PROJECT_STATUS.md), [docs/RESULTS.md](docs/RESULTS.md), [docs/COMMERCIAL.md](docs/COMMERCIAL.md)
-and [docs/MATCHING.md](docs/MATCHING.md).
+held-out videos. Phase 2B (catalogue + human product identification) is built on a feature branch. Automatic
+product matching was measured, found too unreliable, and is disabled research code only. Placement opportunities
+and viewer features are **not** started. See [PROJECT_STATUS.md](PROJECT_STATUS.md), [docs/RESULTS.md](docs/RESULTS.md),
+[docs/COMMERCIAL.md](docs/COMMERCIAL.md) and [docs/IDENTIFICATION.md](docs/IDENTIFICATION.md).
 
 ## Project layout
 
@@ -259,15 +257,15 @@ sceneseen/            core package (no web code)
   unique.py           Unique Shots: repeated-shot grouping per scene (post-processing)
   learning.py         boundary examples from ground truth, optional classifier, versioned artifacts
   commercial/         Phase 2A: taxonomy, detector, relevance, dedup, scene context, analysis, review
-  catalog/            Phase 2B: database models, image store, catalogue operations (SQLAlchemy; SQLite or PostgreSQL)
-  matching/           Phase 2B: embedder, colour signal, vector index, matcher, verification, products per scene
+  catalog/            Phase 2B: database models, image store, catalogue operations, human identification
+  experimental/       EXPERIMENTAL — DISABLED: automatic product matching research (not used by the app)
 server/               FastAPI app + static UI (plain HTML/CSS/JS)
 config/default.toml   all thresholds and model choices
 ground_truth/         human scene-boundary labels (9 videos), dev/val/test roles, provenance, video manifest
 models/               versioned trained boundary-model artifacts (JSON; none enabled by default)
 data/                 LOCAL ONLY: videos, uploads, caches, exports (see data/README.md)
 reports/              evaluation reports (JSON/markdown) and error analysis (images not committed)
-docs/                 ARCHITECTURE.md, EVALUATION.md, RESULTS.md, UNIQUE_SHOTS.md, COMMERCIAL.md, CATALOG.md, MATCHING.md
+docs/                 ARCHITECTURE.md, EVALUATION.md, RESULTS.md, UNIQUE_SHOTS.md, COMMERCIAL.md, CATALOG.md, IDENTIFICATION.md, EXPERIMENTAL_MATCHING.md
 scripts/              synthetic sanity-video builder, error analysis
 tests/                unit + end-to-end tests
 ```
