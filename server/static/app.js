@@ -43,7 +43,9 @@ function el(tag, attrs = {}, ...kids) {
   return e;
 }
 function show(view) {
-  for (const v of ["home", "processing", "results"]) $("#" + v).hidden = v !== view;
+  for (const v of ["home", "processing", "results", "catalog"]) $("#" + v).hidden = v !== view;
+  $("#navCatalog").classList.toggle("on", view === "catalog");
+  $("#navVideos").classList.toggle("on", view !== "catalog");
   window.scrollTo(0, 0);
 }
 
@@ -272,10 +274,11 @@ async function loadCommercial(vid) {
   if (devOn()) {
     try {
       const p = (await api("/api/commercial/report")).displayed;
-      state.commPrecision = p.reviewed ? `${pct(p.precision)} (${p.correct} correct / ${p.wrong} wrong, all reviewed videos)` : null;
+      state.commPrecision = p.reviewed ? `${pct(p.precision)} (${p.correct} correct of ${p.reviewed} judged, all reviewed videos)` : null;
     } catch (_) {}
   }
   renderCommercial();
+  loadProducts(vid);
 }
 async function runCommercial() {
   const btn = $("#commRun"), st = $("#commState"), bar = $("#commBarWrap");
@@ -300,11 +303,14 @@ async function runCommercial() {
   await loadCommercial(state.vid);
 }
 $("#commRun").addEventListener("click", runCommercial);
+$("#reviewToggle").addEventListener("change", (e) => { state.reviewMode = e.target.checked; renderCommercial(); });
 
 function renderCommercial() {
   const c = state.commercial;
   if (!c) return;
   const dev = devOn(), s = c.summary || {}, btn = $("#commRun"), st = $("#commState");
+  const reviewing = dev || state.reviewMode, pfilter = state.prodFilter || "all";
+  renderProductBar();
   const filter = state.commFilter || "all";
   btn.hidden = true; st.textContent = "";
   $("#commFilters").replaceChildren(); $("#commScenes").replaceChildren(); $("#commDev").hidden = true;
@@ -341,13 +347,14 @@ function renderCommercial() {
   $("#commScenes").replaceChildren(...c.scenes.map((sc, i) => {
     const ctx = sc.context || {}, venue = ctx.venue, env = ctx.environment;
     const all = sc.candidates.filter((x) => x.displayed || dev);
-    const cands = all.filter((x) => filter === "all" || x.category === filter);
+    const cands = all.filter((x) => (filter === "all" || x.category === filter) && (pfilter === "all" || productStatus(x) === pfilter));
+    if (pfilter !== "all" && !cands.length) return null;
     const venueMatch = venue && venue.category && (filter === "all" || venue.category === filter);
     if (filter !== "all" && !cands.length && !venueMatch) return null;
     const grid = el("div", { class: "cgrid" });
     cands.forEach((x) => {
       const b = x.best;
-      const card = el("button", { class: "ccard" + (x.displayed ? "" : " hiddenc"), type: "button",
+      const card = el("button", { class: "ccard" + (x.displayed ? "" : " hiddenc"), type: "button", "data-key": x.key,
         title: x.displayed ? "Click to see where it appears" : `Hidden from normal view: ${x.hidden_reason}` },
         el("div", { class: "crop", style: `background-image:url(${frameUrl(b, `?box=${b.box.join(",")}&size=360`)})` },
           el("span", { class: "seen" }, `Seen ×${x.seen_count}`)),
@@ -356,6 +363,8 @@ function renderCommercial() {
           el("span", { class: "ccat" }, x.category_name),
           el("span", { class: "cmeta" }, `Confidence: ${pct(x.detection_confidence)}`),
           el("span", { class: "cmeta" }, `${fmt(x.first_seen)}–${fmt(x.last_seen)}`),
+          productBadge(x),
+          reviewing && !dev ? reviewButtons(x) : null,
           dev ? el("div", { class: "cdev" },
             `raw "${x.debug.raw_label}" · det ${x.detection_confidence.toFixed(3)} (min ${x.debug.threshold})`, el("br"),
             `relevance ${x.commercial_relevance.toFixed(2)} = base ${x.debug.relevance_factors.base} · size ${x.debug.relevance_factors.size} · centre ${x.debug.relevance_factors.centrality} · persist ${x.debug.relevance_factors.persistence}`, el("br"),
@@ -368,6 +377,7 @@ function renderCommercial() {
         const open = card.classList.contains("open");
         grid.querySelectorAll(".cdetail").forEach((n) => n.remove());
         grid.querySelectorAll(".ccard.open").forEach((n) => n.classList.remove("open"));
+        state.openCard = open ? null : x.key;
         if (open) return;
         card.classList.add("open");
         const bx = b.box;
@@ -377,12 +387,13 @@ function renderCommercial() {
             el("div", { class: "cframe" }, el("img", { src: frameUrl(b, "?size=960"), alt: "", loading: "lazy" }),
               el("div", { class: "bbox", style: `left:${bx[0] * 100}%;top:${bx[1] * 100}%;width:${(bx[2] - bx[0]) * 100}%;height:${(bx[3] - bx[1]) * 100}%` })),
             el("p", { class: "muted small", style: "margin:8px 0 0" },
-              `Detected in ${x.detected_in_unique_shots} unique shot${x.detected_in_unique_shots > 1 ? "s" : ""}; those camera set-ups occur ${x.seen_count} time${x.seen_count > 1 ? "s" : ""} in this scene (${fmtDur(x.screen_time)} on screen). No brand or product is identified.`)),
+              `Detected in ${x.detected_in_unique_shots} unique shot${x.detected_in_unique_shots > 1 ? "s" : ""}; those camera set-ups occur ${x.seen_count} time${x.seen_count > 1 ? "s" : ""} in this scene (${fmtDur(x.screen_time)} on screen).`)),
           el("div", {}, el("h5", {}, `Where it appears (${x.seen_count})`),
             el("div", { class: "cocc" }, ...x.occurrences.map((o) => tb
               ? shotTile({ thumb_base: tb }, o.shot_id, { cap: `${fmt(o.start)} → ${fmt(o.end)}`, badge: o.detected ? "analysed" : "",
                   title: o.detected ? "Detected in this frame" : "Same camera set-up as an analysed shot", onclick: () => seek(o.start) })
-              : el("button", { class: "btn small", type: "button", onclick: () => seek(o.start) }, `${fmt(o.start)} → ${fmt(o.end)}`)))));
+              : el("button", { class: "btn small", type: "button", onclick: () => seek(o.start) }, `${fmt(o.start)} → ${fmt(o.end)}`)))),
+          x.displayed ? productBlock(x) : null);
         card.after(det);
       });
       grid.append(card);
@@ -404,6 +415,11 @@ function renderCommercial() {
     return d;
   }).filter(Boolean));
 
+  if (state.openCard) {      // keep the open object open across re-renders (after a review or a product decision)
+    const again = [...document.querySelectorAll("#commScenes .ccard")].find((n) => n.dataset.key === state.openCard);
+    state.openCard = null;
+    if (again) { const d = again.closest("details"); if (d) d.open = true; again.click(); }
+  }
   if (dev) {
     const m = c.model || {}, t = c.timings || {};
     $("#commDev").hidden = false;
@@ -420,10 +436,56 @@ function renderCommercial() {
       ].map(([k, v]) => el("tr", {}, el("td", {}, k), el("td", {}, String(v))))));
   }
 }
+const VERDICTS = [
+  ["correct", "✓", "Correct", "ok", "The object is there, the label is right, and it is commercially useful"],
+  ["wrong", "✗", "Wrong", "bad", "There is no such object here"],
+  ["unsure", "?", "Unsure", "mid", "Cannot tell"],
+  ["wrong_label", "🏷", "Wrong label", "mid", "A real object, but it should be called something else"],
+  ["not_commercial", "🚫", "Not useful", "mid", "Correctly detected, but of no commercial value"],
+  ["bad_image", "👁", "Unclear image", "mid", "Too dark, blurred or cropped to judge"],
+  ["duplicate", "🔁", "Duplicate", "mid", "The same object is already listed in this scene"],
+];
 function reviewButtons(x) {
-  const mk = (verdict, text, cls) => el("button", { type: "button", class: (x.review === verdict ? "on " : "") + cls,
-    onclick: async (ev) => { ev.stopPropagation(); await sendReview({ key: x.key, verdict: x.review === verdict ? null : verdict }); } }, text);
-  return el("div", { class: "rev" }, mk("correct", "✓ Correct", "ok"), mk("wrong", "✗ Wrong", "bad"));
+  const wrap = el("div", { class: "rev" });
+  const mk = ([verdict, icon, text, cls, title]) => el("button", { type: "button", title, class: (x.review === verdict ? "on " : "") + cls,
+    onclick: async (ev) => {
+      ev.stopPropagation();
+      if (x.review === verdict) return sendReview({ key: x.key, verdict: null });
+      if (verdict === "wrong_label") return labelPicker(wrap, x);
+      await sendReview({ key: x.key, verdict });
+    } }, `${icon} ${text}`);
+  wrap.append(...VERDICTS.map(mk));
+  const c = x.review_correction;
+  if (x.review === "wrong_label" && c) wrap.append(el("span", { class: "revnote" }, `→ ${c.label}${c.in_taxonomy ? "" : " (new label)"}`));
+  return wrap;
+}
+async function labelPicker(wrap, x) {
+  if (wrap.querySelector(".relabel")) return;
+  if (!state.taxonomy) state.taxonomy = await api("/api/commercial/taxonomy");
+  const sel = el("select", {}, el("option", { value: "" }, "Correct label…"),
+    ...state.taxonomy.categories.map((k) => el("optgroup", { label: k.name },
+      ...k.object_types.filter((o) => o.id !== x.type_id).map((o) => el("option", { value: o.id }, o.label)))),
+    el("option", { value: "__other" }, "Something else…"));
+  const other = el("input", { type: "text", placeholder: "Type the correct label", hidden: "" });
+  const save = el("button", { type: "button", class: "on ok" }, "Save");
+  sel.addEventListener("change", () => { other.hidden = sel.value !== "__other"; if (!other.hidden) other.focus(); });
+  const go = async () => {
+    if (sel.value && sel.value !== "__other") await sendReview({ key: x.key, verdict: "wrong_label", corrected_type_id: sel.value });
+    else if (other.value.trim()) await sendReview({ key: x.key, verdict: "wrong_label", corrected_label: other.value.trim() });
+  };
+  save.addEventListener("click", (e) => { e.stopPropagation(); go(); });
+  other.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } });
+  const box = el("div", { class: "relabel" }, sel, other, save);
+  box.addEventListener("click", (e) => e.stopPropagation());
+  wrap.append(box);
+}
+function actorName() {
+  if (!state.reviewer) {
+    try { state.reviewer = localStorage.getItem("sceneseen.reviewer") || ""; } catch (_) {}
+    if (!state.reviewer) state.reviewer = (prompt("Your name (stored with your reviews and product decisions):", "") || "").trim();
+    try { if (state.reviewer) localStorage.setItem("sceneseen.reviewer", state.reviewer); } catch (_) {}
+  }
+  return state.reviewer;
 }
 function missedBox(sc) {
   const input = el("input", { type: "text", placeholder: "Missed object, e.g. watch" });
@@ -434,11 +496,12 @@ function missedBox(sc) {
 }
 async function sendReview(body) {
   try {
-    if (!state.reviewer) state.reviewer = prompt("Reviewer name (stored with your verdicts):", "") || "";
-    const r = await post(`/api/videos/${state.vid}/commercial/review`, { ...body, reviewer: state.reviewer });
+    const r = await post(`/api/videos/${state.vid}/commercial/review`, { ...body, reviewer: actorName() });
     const p = r.precision;
-    state.commPrecision = p.reviewed ? `${pct(p.precision)} (${p.correct} correct / ${p.wrong} wrong, all reviewed videos)` : null;
-    await loadCommercial(state.vid);
+    state.commPrecision = p.reviewed ? `${pct(p.precision)} (${p.correct} correct of ${p.reviewed} judged, all reviewed videos)` : null;
+    const fresh = await api(`/api/videos/${state.vid}/commercial`);
+    state.commercial = fresh;
+    renderCommercial();
   } catch (e) { $("#commState").textContent = e.message; }
 }
 
@@ -660,6 +723,7 @@ $("#resetParams").addEventListener("click", () => { state.params = null; $("#par
 
 // ------------------------------------------------------------------ routing
 async function route() {
+  if (location.hash.startsWith("#/catalog")) { show("catalog"); return openCatalog(); }
   const m = location.hash.match(/^#\/v\/([0-9a-f]+)/);
   if (m) {
     try { await loadResult(m[1]); return; }
@@ -670,4 +734,4 @@ async function route() {
 }
 window.addEventListener("hashchange", route);
 try { setDev(localStorage.getItem("sceneseen.dev") === "1" || new URLSearchParams(location.search).has("dev")); } catch (_) {}
-route();
+window.addEventListener("DOMContentLoaded", route);   // after catalog.js has loaded

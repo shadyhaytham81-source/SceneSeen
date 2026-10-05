@@ -10,6 +10,10 @@
 <body>
   <header class="topbar">
     <a class="wordmark" href="/" aria-label="SceneSeen home"><span class="mark"></span>SCENESEEN</a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#/" id="navVideos">Videos</a>
+      <a href="#/catalog" id="navCatalog">Catalog</a>
+    </nav>
     <label class="devtoggle" title="Show shots, scores and grouping decisions">
       <input type="checkbox" id="devToggle"> <span>Developer</span>
     </label>
@@ -105,11 +109,25 @@
             <p class="muted small" id="commSummary"></p>
           </div>
           <div class="row">
+            <label class="switch small" title="Check the detections: correct, wrong label, not useful…"><input type="checkbox" id="reviewToggle"> <span>Review</span></label>
             <button class="btn primary small" id="commRun" type="button" hidden>Run Commercial Analysis</button>
             <span class="muted small" id="commState"></span>
           </div>
         </div>
         <div class="bar" id="commBarWrap" hidden><div id="commBar"></div></div>
+        <div class="prodbar" id="prodBar" hidden>
+          <div>
+            <strong>Products</strong>
+            <span class="muted small" id="prodSummary"></span>
+          </div>
+          <div class="row">
+            <span class="muted small" id="prodState"></span>
+            <button class="btn small" id="prodExport" type="button" hidden>Export products</button>
+            <button class="btn primary small" id="prodRun" type="button">Match Products</button>
+          </div>
+        </div>
+        <div class="bar" id="prodBarWrap" hidden><div id="prodBarFill"></div></div>
+        <div class="chips" id="prodFilters" role="tablist" aria-label="Product status filter"></div>
         <div class="chips" id="commFilters" role="tablist" aria-label="Category filter"></div>
         <div id="commScenes"></div>
         <div class="panel dev-only" id="commDev" hidden></div>
@@ -158,7 +176,91 @@
         </div>
       </section>
     </section>
+
+    <!-- CATALOG (Phase 2B) -->
+    <section id="catalog" class="view" hidden>
+      <div class="res-head">
+        <div>
+          <p class="muted small">Brand &amp; product catalog</p>
+          <h2>Catalog</h2>
+          <p class="muted small" id="catStats"></p>
+        </div>
+        <div class="actions">
+          <button class="btn" id="catBrands" type="button">Brands</button>
+          <button class="btn primary" id="catAdd" type="button">Add product</button>
+        </div>
+      </div>
+      <p class="notice" id="catNotice" hidden></p>
+      <div class="cat-tools">
+        <input type="search" id="catSearch" placeholder="Search products, brands, SKU…" aria-label="Search the catalog">
+        <select id="catBrandFilter" aria-label="Brand"></select>
+        <label class="switch small"><input type="checkbox" id="catArchived"> <span>Show archived</span></label>
+      </div>
+      <div class="chips" id="catCats" role="tablist" aria-label="Category"></div>
+      <div class="pgrid" id="catGrid"></div>
+      <div class="pager" id="catPager"></div>
+    </section>
   </main>
+
+  <dialog id="productDlg" class="dlg wide">
+    <form method="dialog" id="productForm" class="dlg-body" novalidate>
+      <div class="dlg-head"><h3 id="pdTitle">Add product</h3><button class="x" type="button" id="pdClose" aria-label="Close">×</button></div>
+      <div class="dlg-cols">
+        <div class="fields">
+          <label>Brand<input name="brand" list="brandList" required autocomplete="off" placeholder="Type to choose or create a brand"></label>
+          <datalist id="brandList"></datalist>
+          <label>Product name<input name="name" required autocomplete="off"></label>
+          <div class="two">
+            <label>Category<select name="category" required></select></label>
+            <label>Object type<select name="object_type"></select></label>
+          </div>
+          <div class="two">
+            <label>SKU<input name="sku" autocomplete="off"></label>
+            <label>External ID<input name="external_id" autocomplete="off"></label>
+          </div>
+          <label>Product URL<input name="url" type="url" placeholder="https://"></label>
+          <div class="three">
+            <label>Price<input name="price" type="number" min="0" step="0.01"></label>
+            <label>Currency<input name="currency" maxlength="3" placeholder="EGP"></label>
+            <label>Availability<select name="availability"></select></label>
+          </div>
+          <label>Description<textarea name="description" rows="3"></textarea></label>
+        </div>
+        <div class="imgs">
+          <div class="row between"><strong>Images</strong>
+            <label class="small muted">Add as <select id="pdRole"></select></label></div>
+          <div class="updrop" id="pdDrop" tabindex="0" role="button">Drop images here or <u>choose files</u><input type="file" id="pdFiles" accept="image/jpeg,image/png,image/webp" multiple hidden></div>
+          <p class="muted small">Front, back, side, detail and lifestyle photos all help matching. JPEG, PNG or WebP.</p>
+          <div class="imggrid" id="pdImages"></div>
+          <div id="pdVariantsWrap" hidden>
+            <div class="row between" style="margin-top:14px"><strong>Variants</strong><button class="btn small ghost" type="button" id="pdAddVariant">Add variant</button></div>
+            <div id="pdVariants"></div>
+          </div>
+        </div>
+      </div>
+      <p class="error left" id="pdError" hidden></p>
+      <div class="dlg-foot">
+        <div class="row"><button class="btn ghost small danger" type="button" id="pdDelete" hidden>Delete</button>
+          <button class="btn ghost small" type="button" id="pdArchive" hidden>Archive</button></div>
+        <div class="row"><button class="btn ghost" type="button" id="pdCancel">Cancel</button>
+          <button class="btn primary" type="submit" id="pdSave">Save product</button></div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="brandDlg" class="dlg">
+    <div class="dlg-body">
+      <div class="dlg-head"><h3>Brands</h3><button class="x" type="button" id="bdClose" aria-label="Close">×</button></div>
+      <form id="brandForm" class="brand-new">
+        <input name="name" placeholder="New brand name" required autocomplete="off">
+        <input name="website" placeholder="Website (optional)" type="url">
+        <button class="btn primary small" type="submit">Create brand</button>
+      </form>
+      <p class="error left" id="bdError" hidden></p>
+      <div id="brandRows" class="brand-rows"></div>
+    </div>
+  </dialog>
   <script src="/app.js"></script>
+  <script src="/catalog.js"></script>
 </body>
 </html>

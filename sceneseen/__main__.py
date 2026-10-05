@@ -160,6 +160,70 @@ def cmd_commercial(args, cfg) -> int:
     return 0
 
 
+def cmd_products(args, cfg) -> int:
+    """Phase 2B: match a video's commercial objects against the catalogue and list products per scene."""
+    from .catalog.db import Database
+    from .catalog.images import ImageStore
+    from .commercial import analysis as commercial_analysis
+    from .config import catalog_paths
+    from .matching import matcher, products, verification
+    from .matching.embedder import get_embedder
+    from .matching.index import get_index
+    from .matching.store import ensure_catalog_embeddings
+    from .media import probe
+    from .pipeline import analyze, load_stage_outputs, unique_shots_for
+
+    result = analyze(args.video, cfg)
+    info = probe(args.video)
+    stage = load_stage_outputs(cfg, info)
+    unique = unique_shots_for(cfg, info, stage, result["scenes"])
+    com = commercial_analysis.analyze(
+        stage["cache"].dir, info, stage["shots"], result["scenes"], unique, cfg.commercial,
+        clip=stage["features"]["clip"], clip_model=(cfg.features.model, cfg.features.pretrained),
+        cache_root=cfg.paths.cache_dir)
+    if com["status"] == "unavailable":
+        print(f"Commercial analysis unavailable: {com['reason']}")
+        return 1
+    db = match = None
+    verified: dict = {}
+    video_id = stage["cache"].dir.name
+    try:
+        url, images = catalog_paths(cfg)
+        db = Database(url)
+        verified = verification.for_video(db, video_id)
+        emb = get_embedder(cfg.matching.embedder, cfg.matching.device, cfg.matching.batch_size)
+        emb.load()
+        ensure_catalog_embeddings(db, ImageStore(images), emb, batch=cfg.matching.batch_size)
+        cdir = stage["cache"].dir / "commercial"
+        match = matcher.match_video(com, cdir, cdir / f"frames_{cfg.commercial.frame_long_side}",
+                                    get_index(db, emb.cache_key()), emb, cfg.matching)
+    except Exception as e:   # catalogue or model problem: the objects are still listed, as generic objects
+        print(f"Product matching unavailable ({type(e).__name__}: {e}); listing generic objects only.")
+    out = products.scene_products(com, match, verified, db)
+    out_dir = Path(args.out or cfg.paths.exports_dir / Path(args.video).stem)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "products.json").write_text(
+        json.dumps({"video": Path(args.video).name, **products.export_view(out)}, indent=1, ensure_ascii=False), encoding="utf-8")
+    for sc in out["scenes"]:
+        v = sc["context"].get("venue")
+        print(f"\nScene {sc['scene_id']:02d}  {_ts(sc['start_seconds'])} → {_ts(sc['end_seconds'])}   [{v['label'] if v else 'context unknown'}]")
+        for o in sc["objects"]:
+            top = o["candidates"][0] if o["candidates"] else None
+            what = (f"{o['product']['brand']} · {o['product']['name']}" if o["product"]
+                    else f"{top['product']['brand']} · {top['product']['name']} ?" if top and o["status"] in ("high_confidence_candidate", "needs_review")
+                    else "")
+            mc = "  —" if o["match_confidence"] is None or not top else f"{o['match_confidence']:>4.0%}"
+            print(f"   {o['label']:<20} detection {o['detection_confidence']:.0%}  relevance {o['commercial_relevance']:.2f}  "
+                  f"match {mc}  {o['status_label']:<26} {what}")
+    n = out["status_counts"]
+    print("\n" + " · ".join(f"{v} {out['status_labels'][k].lower()}" for k, v in n.items() if v))
+    if match:
+        print(f"Matching: {match['status']} in {match['seconds']} s against {match['summary']['catalogue_products']} products "
+              f"({match['summary']['crops_embedded_now']} crops embedded now)")
+    print(f"Product data: {out_dir / 'products.json'}")
+    return 0
+
+
 def cmd_commercial_report(args, cfg) -> int:
     """Precision of reviewed commercial detections (from ground_truth/commercial_reviews/)."""
     from .commercial import review
@@ -172,7 +236,13 @@ def cmd_commercial_report(args, cfg) -> int:
         return 1
     scope = f"at a flat confidence ≥ {args.min_confidence}" if args.min_confidence is not None else "under the current display rules"
     print(f"Displayed detections {scope}: precision {d['precision']:.1%} "
-          f"({d['correct']} correct, {d['wrong']} wrong, {rep['videos']} videos); missed objects reported: {rep['missed_reported']}")
+          f"({d['correct']} correct of {d['reviewed']} judged, {rep['videos']} videos); missed objects reported: {rep['missed_reported']}")
+    v = d["by_verdict"]
+    print(f"  not shown as they are: {v['wrong']} wrong, {v['wrong_label']} wrong label, {v['not_commercial']} not commercially useful, "
+          f"{v['duplicate']} duplicate  ·  left out: {v['unsure']} unsure, {v['bad_image']} unclear image")
+    print(f"  detector alone (real object, right label): {d['detection_precision']:.1%}")
+    if rep["label_corrections"]:
+        print("  label corrections: " + ", ".join(f"{c['detected']} → {c['corrected']} ×{c['count']}" for c in rep["label_corrections"][:8]))
     for title, key in (("By category", "by_category"), ("By object type", "by_type"), ("By video", "by_video")):
         print(f"\n{title}")
         for k, v in sorted(rep[key].items(), key=lambda kv: -kv[1]["reviewed"]):
@@ -322,6 +392,9 @@ def main(argv=None) -> int:
     co.add_argument("video")
     co.add_argument("--out", help="output directory (default data/exports/<video stem>)")
     co.add_argument("--all", action="store_true", help="also list candidates hidden from the normal view")
+    pr = sub.add_parser("products", help="Phase 2B: match a video's objects against the product catalogue")
+    pr.add_argument("video")
+    pr.add_argument("--out", help="output directory (default data/exports/<video stem>)")
     cr = sub.add_parser("commercial-report", help="precision of reviewed commercial detections")
     cr.add_argument("--min-confidence", type=float, default=None,
                     help="re-evaluate existing reviews at this display threshold")
@@ -338,7 +411,7 @@ def main(argv=None) -> int:
     cfg = load_config(*args.config)
     return {"analyze": cmd_analyze, "evaluate": cmd_evaluate, "tune": cmd_tune, "serve": cmd_serve,
             "check-data": cmd_check_data, "train": cmd_train,
-            "commercial": cmd_commercial, "commercial-report": cmd_commercial_report}[args.cmd](args, cfg)
+            "commercial": cmd_commercial, "commercial-report": cmd_commercial_report, "products": cmd_products}[args.cmd](args, cfg)
 
 
 if __name__ == "__main__":
