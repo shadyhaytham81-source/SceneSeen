@@ -1,0 +1,84 @@
+{
+ "embedder": "marqo_ecommerce_b",
+ "objects": 62,
+ "trials": 298,
+ "colour_weight": 0.25,
+ "top1_by_colour_weight": {
+  "0.0": {
+   "one_occurrence": 0.5302013422818792,
+   "up_to_5_occurrences": 0.5637583892617449
+  },
+  "0.25": {
+   "one_occurrence": 0.697986577181208,
+   "up_to_5_occurrences": 0.738255033557047
+  },
+  "0.5": {
+   "one_occurrence": 0.6912751677852349,
+   "up_to_5_occurrences": 0.7181208053691275
+  },
+  "0.75": {
+   "one_occurrence": 0.6912751677852349,
+   "up_to_5_occurrences": 0.7046979865771812
+  },
+  "1.0": {
+   "one_occurrence": 0.6912751677852349,
+   "up_to_5_occurrences": 0.7046979865771812
+  },
+  "1.5": {
+   "one_occurrence": 0.697986577181208,
+   "up_to_5_occurrences": 0.6845637583892618
+  }
+ },
+ "held_out_top1": 0.738255033557047,
+ "auc_correct_top_candidate": {
+  "raw_score": 0.7231624758220502,
+  "margin": 0.8350580270793037,
+  "score_and_margin_held_out": 0.8396518375241779
+ },
+ "confidence_model": {
+  "w_score": 2.76207016841794,
+  "w_margin": 18.674765018010326,
+  "bias": -4.121454804373464
+ },
+ "background_score": 0.8281737505277803,
+ "state_cuts": {
+  "high_confidence": 0.8,
+  "possible_match": 0.5,
+  "uncertain": 0.25
+ },
+ "held_out_states": {
+  "high_confidence": {
+   "n": 44,
+   "correct": 41,
+   "precision": 0.9318181818181818,
+   "product_absent": 2
+  },
+  "possible_match": {
+   "n": 35,
+   "correct": 22,
+   "precision": 0.6285714285714286,
+   "product_absent": 8
+  },
+  "uncertain": {
+   "n": 65,
+   "correct": 27,
+   "precision": 0.4153846153846154,
+   "product_absent": 30
+  },
+  "no_reliable_match": {
+   "n": 154,
+   "correct": 20,
+   "precision": 0.12987012987012986,
+   "product_absent": 109
+  }
+ },
+ "product_absent": {
+  "cases": 149,
+  "shown_high_confidence": 2
+ },
+ "product_present": {
+  "cases": 149,
+  "ranked_first": 110,
+  "ranked_first_and_high_confidence": 41
+ }
+}

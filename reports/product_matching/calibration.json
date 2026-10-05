@@ -1,0 +1,84 @@
+{
+ "embedder": "openclip_b32",
+ "objects": 62,
+ "trials": 298,
+ "colour_weight": 0.5,
+ "top1_by_colour_weight": {
+  "0.0": {
+   "one_occurrence": 0.46308724832214765,
+   "up_to_5_occurrences": 0.4966442953020134
+  },
+  "0.25": {
+   "one_occurrence": 0.610738255033557,
+   "up_to_5_occurrences": 0.6442953020134228
+  },
+  "0.5": {
+   "one_occurrence": 0.6644295302013423,
+   "up_to_5_occurrences": 0.6711409395973155
+  },
+  "0.75": {
+   "one_occurrence": 0.6644295302013423,
+   "up_to_5_occurrences": 0.6711409395973155
+  },
+  "1.0": {
+   "one_occurrence": 0.6711409395973155,
+   "up_to_5_occurrences": 0.6510067114093959
+  },
+  "1.5": {
+   "one_occurrence": 0.6778523489932886,
+   "up_to_5_occurrences": 0.6711409395973155
+  }
+ },
+ "held_out_top1": 0.6241610738255033,
+ "auc_correct_top_candidate": {
+  "raw_score": 0.7228282828282828,
+  "margin": 0.8735858585858586,
+  "score_and_margin_held_out": 0.8773737373737374
+ },
+ "confidence_model": {
+  "w_score": 2.702674484819984,
+  "w_margin": 18.440664219456036,
+  "bias": -4.990530069476836
+ },
+ "background_score": 1.0474333763122559,
+ "state_cuts": {
+  "high_confidence": 0.8,
+  "possible_match": 0.5,
+  "uncertain": 0.25
+ },
+ "held_out_states": {
+  "high_confidence": {
+   "n": 44,
+   "correct": 41,
+   "precision": 0.9318181818181818,
+   "product_absent": 3
+  },
+  "possible_match": {
+   "n": 31,
+   "correct": 18,
+   "precision": 0.5806451612903226,
+   "product_absent": 7
+  },
+  "uncertain": {
+   "n": 50,
+   "correct": 25,
+   "precision": 0.5,
+   "product_absent": 18
+  },
+  "no_reliable_match": {
+   "n": 173,
+   "correct": 16,
+   "precision": 0.09248554913294797,
+   "product_absent": 121
+  }
+ },
+ "product_absent": {
+  "cases": 149,
+  "shown_high_confidence": 3
+ },
+ "product_present": {
+  "cases": 149,
+  "ranked_first": 100,
+  "ranked_first_and_high_confidence": 41
+ }
+}

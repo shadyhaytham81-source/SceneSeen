@@ -178,6 +178,16 @@ ENVIRONMENTS: dict[str, Context] = {c.id: c for c in [
 ]}
 
 
+def compatible_types(type_id: str) -> set[str]:
+    """Catalogue object types a detection of `type_id` may be matched against (category gating):
+    the type itself plus the types the detector confuses it with (same group: sneakers/shoes,
+    shirt/jacket/suit, sofa/armchair/chair ...). A smartphone is never compared with shoes."""
+    o = OBJECTS.get(type_id)
+    if o is None:
+        return set()
+    return {type_id} | ({k for k, v in OBJECTS.items() if v.group == o.group} if o.group else set())
+
+
 def detector_queries() -> list[tuple[str, str]]:
     """[(prompt, object_type_id)] in a stable order; this list (hashed) is part of the cache key."""
     return [(p, o.id) for o in OBJECTS.values() for p in o.prompts]

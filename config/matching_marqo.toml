@@ -1,0 +1,17 @@
+# Optional profile: Marqo e-commerce embeddings instead of OpenCLIP for product matching.
+#
+#   SCENESEEN_CONFIG=config/matching_marqo.toml python -m sceneseen serve
+#
+# Measured on the same 62 labelled objects (docs/MATCHING.md): the right product is ranked first in
+# 73.8 % of cases instead of 67.1 %; the "high confidence" band is equally precise (93.2 %).
+# Cost: an extra 812 MB download and a second model in memory. Not the default until it has been
+# tested on a real catalogue of studio product photos. The confidence model is embedder-specific:
+# these values come from `python scripts/product_matching_study.py calibrate --embedder marqo_ecommerce_b`.
+[matching]
+embedder = "marqo_ecommerce_b"
+colour_weight = 0.25
+conf_w_score = 2.762
+conf_w_margin = 18.675
+conf_bias = -4.121
+background_score = 0.828
+calibration_version = "2026-10-05/marqo_ecommerce_b/colour0.25/62-objects"

@@ -1,0 +1,147 @@
+{
+ "catalogue": {
+  "brands": 7,
+  "products": 91,
+  "images": 190,
+  "archived_products": 0
+ },
+ "videos": [
+  {
+   "video_id": "9965a7a81b6dee80",
+   "objects": 26,
+   "first_match_s": 8.18,
+   "cached_s": 0.353,
+   "crops_embedded": null,
+   "states": {
+    "unknown": 10,
+    "needs_review": 3,
+    "high_confidence_candidate": 9,
+    "no_catalog": 4
+   },
+   "job": "done"
+  },
+  {
+   "video_id": "1e186b43df5f1347",
+   "objects": 31,
+   "first_match_s": 1.25,
+   "cached_s": 0.273,
+   "crops_embedded": null,
+   "states": {
+    "high_confidence_candidate": 7,
+    "needs_review": 5,
+    "unknown": 19
+   },
+   "job": "done"
+  },
+  {
+   "video_id": "df818ce7d02769a0",
+   "objects": 22,
+   "first_match_s": 1.03,
+   "cached_s": 0.17,
+   "crops_embedded": null,
+   "states": {
+    "high_confidence_candidate": 9,
+    "unknown": 10,
+    "needs_review": 3
+   },
+   "job": "done"
+  },
+  {
+   "video_id": "245445608020454b",
+   "objects": 13,
+   "first_match_s": 0.63,
+   "cached_s": 0.121,
+   "crops_embedded": null,
+   "states": {
+    "high_confidence_candidate": 5,
+    "unknown": 6,
+    "needs_review": 2
+   },
+   "job": "done"
+  },
+  {
+   "video_id": "1f9aa57961555eeb",
+   "objects": 42,
+   "first_match_s": 1.26,
+   "cached_s": 0.198,
+   "crops_embedded": null,
+   "states": {
+    "needs_review": 8,
+    "unknown": 28,
+    "high_confidence_candidate": 6
+   },
+   "job": "done"
+  },
+  {
+   "video_id": "515f54d46af3b258",
+   "objects": 49,
+   "first_match_s": 2.08,
+   "cached_s": 0.344,
+   "crops_embedded": null,
+   "states": {
+    "needs_review": 10,
+    "unknown": 32,
+    "high_confidence_candidate": 7
+   },
+   "job": "done"
+  },
+  {
+   "video_id": "fd6f4fc15c6ae7fd",
+   "objects": 4,
+   "first_match_s": 0.21,
+   "cached_s": 0.035,
+   "crops_embedded": null,
+   "states": {
+    "unknown": 4
+   },
+   "job": "done"
+  },
+  {
+   "video_id": "06e480dd0e2c97df",
+   "objects": 43,
+   "first_match_s": 0.43,
+   "cached_s": 0.363,
+   "crops_embedded": null,
+   "states": {
+    "high_confidence_candidate": 7,
+    "unknown": 31,
+    "no_catalog": 2,
+    "needs_review": 3
+   },
+   "job": "done"
+  },
+  {
+   "video_id": "cd4d85d09ada4a77",
+   "objects": 33,
+   "first_match_s": 1.08,
+   "cached_s": 0.315,
+   "crops_embedded": null,
+   "states": {
+    "high_confidence_candidate": 11,
+    "unknown": 15,
+    "no_catalog": 3,
+    "needs_review": 4
+   },
+   "job": "done"
+  }
+ ],
+ "totals": {
+  "unknown": 155,
+  "needs_review": 38,
+  "high_confidence_candidate": 61,
+  "no_catalog": 9
+ },
+ "high_confidence_breakdown": {
+  "own_product": 58,
+  "other_video_WRONG": 1,
+  "same_video_other_scene": 2
+ },
+ "own_objects": {
+  "objects": 78,
+  "rank1": 78,
+  "rank1_possible_match": 13,
+  "rank1_high_confidence": 58,
+  "rank1_uncertain": 4,
+  "rank1_no_reliable_match": 3
+ }
+}
