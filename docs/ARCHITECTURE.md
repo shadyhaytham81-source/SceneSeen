@@ -93,6 +93,10 @@ Phase 2 (objects, clothing, places per scene) plugs in without a rewrite:
   same way, without touching shots or grouping.
 - The web layer is a thin API over the package, and new endpoints/panels are additive.
 
+Both parts of Phase 2 were added exactly this way: [COMMERCIAL.md](COMMERCIAL.md) (objects and scene context) and
+[CATALOG.md](CATALOG.md) / [MATCHING.md](MATCHING.md) (catalogue, product matching, verification). Dependencies
+point one way only: `matching` → `catalog`, `commercial` → Phase 1. Phase 1 imports none of them.
+
 ## Scaling notes
 For 45–60 min episodes: decoding is streamed, TransNetV2 holds 48×27 frames (≈ 350 MB for 90k frames), and
 grouping is O(shots × window²). The single-worker job runner is enough for a local tool. A queue (e.g. RQ) is the

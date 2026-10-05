@@ -11,7 +11,8 @@ Video → Scenes → Unique Shots ─► 1 representative frame per unique shot 
 ```
 
 It answers "which commercially relevant things are in this scene, and where do they appear?". It does **not**
-identify brands or products ("sneakers", never "Nike Air Force 1"). That is Phase 2B (product catalogue matching).
+identify brands or products ("sneakers", never "Nike Air Force 1"). That is Phase 2B, built on top of it:
+[CATALOG.md](CATALOG.md) and [MATCHING.md](MATCHING.md).
 
 ## Two levels of understanding
 
@@ -108,7 +109,7 @@ the reason.
 
 Reviews were done **blind by the AI assistant** from crops with the proposed label and no scores shown. They are
 **not human-verified**. They are stored in `ground_truth/commercial_reviews/` in the same format the UI writes, so
-a human can confirm or overrule each one (Developer mode → ✓ Correct / ✗ Wrong / Missed).
+a human can confirm or overrule each one (Review switch in the Commercial Objects panel; see "Review verdicts").
 
 **Step 1: calibration (4 videos, 177 judged detections, sampled evenly across confidence):**
 
@@ -143,6 +144,28 @@ smartphone 5/7, chair 8/12, sunglasses 1/3.
 
 Recall was not measured (precision is the priority). The "Missed" control records objects a reviewer notices.
 
+### Review verdicts
+
+A detection is not always simply right or wrong. Turn on **Review** in the Commercial Objects panel (or Developer
+mode) and give each object one verdict:
+
+| verdict | meaning | counts as |
+|---|---|---|
+| ✓ Correct | the object is there, the label is right, it is commercially useful | correct |
+| ✗ Wrong | there is no such object in the box | detector error |
+| 🏷 Wrong label | a real object under the wrong name; pick the right type, or type one the taxonomy lacks (detected Sunglasses → Eyeglasses) | detector error; the correction is stored |
+| 🚫 Not useful | correctly detected, but of no commercial value | relevance error, not a detector error |
+| 🔁 Duplicate | the same object is already listed in this scene | de-duplication error, not a detector error |
+| ? Unsure | cannot tell | excluded |
+| 👁 Unclear image | too dark, blurred or cropped to judge | excluded |
+
+Each review is stored as structured data (verdict, correction, note, detected type, confidence, relevance, model
+and taxonomy version, reviewer, time) in `ground_truth/commercial_reviews/<video>.json`. Two rates are reported:
+`precision` = correct / judged (what the viewer sees) and `detection_precision` = (correct + not useful +
+duplicate) / judged (the detector alone). `label_corrections` counts detected → corrected pairs. **No model is
+retrained from reviews.** They are evidence for later threshold calibration, taxonomy changes and evaluation.
+Review files written before these verdicts existed (Correct / Wrong only) load unchanged.
+
 ```bash
 python -m sceneseen commercial-report                      # precision of all reviews under the current rules
 python -m sceneseen commercial-report --min-confidence 0.6 # same reviews, different threshold
@@ -175,12 +198,13 @@ rebuilt.
 | `GET /api/videos/{id}/commercial` | cached results; never loads the model. `status`: `ready`, `partial`, `not_run`, `unavailable` |
 | `POST /api/videos/{id}/commercial/analyze` | start the analysis job (progress via `/api/jobs/commercial-{id}`) |
 | `GET /api/videos/{id}/commercial/frame/{shot}/{pos}?box=…&size=…` | representative frame or padded crop |
-| `POST /api/videos/{id}/commercial/review` | Correct / Wrong for a candidate, or a missed object |
+| `POST /api/videos/{id}/commercial/review` | a verdict for a candidate (`verdict`, optional `corrected_type_id` / `corrected_label`, `note`), or a missed object |
+| `GET /api/commercial/taxonomy` | object types per category and the verdict list |
 | `GET /api/commercial/report` | precision of reviewed detections |
 
 Each candidate carries what Phase 2B (catalogue matching) and Phase 3 (placement opportunities) need: type,
 category, confidence, relevance, colour attribute, the best frame + box (crop source), and every occurrence with
-timestamps and unique-shot ids. Neither phase is implemented.
+timestamps and unique-shot ids. Phase 2B is implemented (docs/MATCHING.md); Phase 3 is not.
 
 CLI: `python -m sceneseen commercial VIDEO [--all]` writes `commercial.json` next to `scenes.json`.
 

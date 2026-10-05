@@ -1,6 +1,6 @@
 # SceneSeen — Project Status
 
-_Last updated: 2026-10-05 · Phase 1 done · **Phase 2A (commercial scene understanding) built** · Phase 2B+ not started_
+_Last updated: 2026-10-05 · Phase 1 done · Phase 2A built · **Phase 2B (catalogue, product matching, human verification) built, not merged** · Phase 3+ not started_
 
 ## What SceneSeen is
 A graduation project. The long-term vision is to understand film and TV content scene by scene, so that products,
@@ -117,13 +117,47 @@ Built on top of Phase 1 without changing it (dev F1 0.677 / validation 0.812 ide
   about 40 s; cached results return in under 0.3 s.
 - **Precision:** 84.9 % of displayed objects correct on 5 held-out videos (118 / 139; AI-reviewed, not yet
   human-verified). Scene-context venues ≈ 70 %.
-- **Review tool:** Developer mode → ✓ Correct / ✗ Wrong / Missed on each object; `python -m sceneseen commercial-report`.
+- **Review tool:** Review switch → seven verdicts + Missed on each object; `python -m sceneseen commercial-report`.
 - Details, measurements and known failure cases: [docs/COMMERCIAL.md](docs/COMMERCIAL.md).
 
 Next for Phase 2A: have a human confirm a sample of detections in the review tool (this replaces the AI review as
 the precision figure), and record missed objects to see what recall is losing.
 
+## Phase 2B — Catalogue, Product Matching, Verification (2026-10-05, branch `feature/product-catalog-matching`)
+Built on top of Phase 2A without changing Phase 1 or the detector (dev F1 0.677 / validation 0.812 unchanged).
+**Not merged into `main`; waiting for an independent audit.**
+
+```
+Video → Scenes → Unique Shots → Commercial Objects → Catalogue → Ranked candidates → Confidence → Human
+verification → Confirmed products per scene
+```
+- **Catalogue:** brands, products, variants, several images per product (front/back/side/detail/lifestyle),
+  category, object type, SKU, external ID, URL, price, availability. SQLite through SQLAlchemy (one local file);
+  the same code runs on PostgreSQL, pgvector is the documented next step. Catalog page with search, filters,
+  paging, multi-image upload, archive. [docs/CATALOG.md](docs/CATALOG.md)
+- **Matching:** OpenCLIP embedding (the model Phase 1 already has) + colour histogram, category gating, best
+  reference image, mean over up to 5 occurrences. Marqo e-commerce embeddings ranked better in the study and are
+  an optional profile (`config/matching_marqo.toml`). Nothing trained.
+- **Confidence:** calibrated from the score *and* its lead over the next product. Held-out: "high confidence" is
+  right 93 % of the time (41/44); a product that is not in the catalogue is shown as high confidence in 2 % of
+  cases; the right product is ranked first in 67 % and is high-confidence in 27 %. Everything else is "possible",
+  "uncertain" or "unknown product" and goes to a person. Detection confidence, commercial relevance, match
+  confidence and verification status stay separate fields.
+- **Human verification:** Confirm / No match / Search catalog / Change, with an append-only audit trail (who,
+  when, product, previous decision, AI confidence and model versions at that moment). The AI never confirms.
+- **Review verdicts (Phase 2A):** Correct, Wrong, Unsure, Wrong label (+ the right label), Not useful, Unclear
+  image, Duplicate. Stored as structured data; nothing is retrained.
+- **Speed:** exact vector search, 0.6 ms per object against 10,000 products / 30,000 images; first match of a
+  video 0.2–2 s after the model is loaded; cached afterwards. Runs as a background job with progress.
+- **Failure isolation:** catalogue down, model missing, matcher error → objects are still listed, scenes untouched.
+- **Honest limits:** calibration labels are AI-made (62 objects), references in the study are film crops, and
+  **no real product catalogue has been tested yet**. [docs/MATCHING.md](docs/MATCHING.md)
+
+Needs a human: add 20–50 real products with studio photos that appear in a labelled video and check the ranking
+and the confidence states; confirm or correct a sample of detections with the new verdicts; try the Catalog page
+with real data (long names, many images, bulk entry speed).
+
 ## ⛔ Not started — and must not start yet
-Product catalogue, exact brand/product matching, placement opportunities, QR codes / Shop-the-Episode, analytics,
-screen recognition and engagement prediction. Phase 2A exposes clean per-candidate data (type, category, crop source,
-occurrences) for them, but none of them is implemented.
+Placement Opportunity Engine, QR codes / Shop-the-Episode, viewer analytics, brand campaign analytics, screen
+recognition and engagement prediction. Phase 2 ends at confirmed products per scene (`products.json`), which is
+the input those phases need. None of them is implemented.
