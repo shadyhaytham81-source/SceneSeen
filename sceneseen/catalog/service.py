@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from ..commercial import taxonomy as T
-from .db import AVAILABILITY, IMAGE_ROLES, Brand, Database, Product, ProductImage, ProductVariant, Verification, utcnow
+from .db import AVAILABILITY, IMAGE_ROLES, Brand, Database, Product, ProductImage, ProductVariant, Identification, utcnow
 from .images import ImageError, ImageStore
 
 # Catalogue products live in the object categories (venues / real estate are scene contexts).
@@ -129,14 +129,24 @@ def update_brand(db: Database, brand_id: int, **fields) -> dict:
         return brand_dict(b)
 
 
-def list_brands(db: Database, include_archived: bool = False) -> list[dict]:
+def list_brands(db: Database, include_archived: bool = False, q: str | None = None,
+                compatible_with: str | None = None, limit: int | None = None) -> list[dict]:
+    """Brands with their product counts. `q` searches the name; `compatible_with` (a detected
+    object type) counts only products that kind of object could be and lists those brands first."""
     with db.session() as s:
-        q = (select(Brand, func.count(Product.id))
-             .outerjoin(Product, (Product.brand_id == Brand.id) & (Product.archived.is_(False)))
-             .group_by(Brand.id).order_by(func.lower(Brand.name)))
+        on = (Product.brand_id == Brand.id) & (Product.archived.is_(False))
+        if compatible_with:
+            on = on & compatible_filter(compatible_with)
+        n = func.count(Product.id)
+        stmt = select(Brand, n).outerjoin(Product, on).group_by(Brand.id)
+        stmt = stmt.order_by(n.desc(), func.lower(Brand.name)) if compatible_with else stmt.order_by(func.lower(Brand.name))
         if not include_archived:
-            q = q.where(Brand.archived.is_(False))
-        return [brand_dict(b, n) for b, n in s.execute(q)]
+            stmt = stmt.where(Brand.archived.is_(False))
+        for word in (q or "").lower().split()[:6]:
+            stmt = stmt.where(func.lower(Brand.name).like(f"%{word}%"))
+        if limit:
+            stmt = stmt.limit(max(1, min(int(limit), 500)))
+        return [brand_dict(b, c) for b, c in s.execute(stmt)]
 
 
 # ---------------------------------------------------------------- products
@@ -248,24 +258,36 @@ def get_product(db: Database, product_id: int) -> dict:
 
 
 def delete_product(db: Database, product_id: int) -> dict:
-    """Remove a product. A product that a human has already confirmed in a scene is archived
-    instead of deleted, so the audit trail keeps pointing at something."""
+    """Remove a product. A product that a person has identified in a scene is archived instead
+    of deleted, so identifications and their history keep pointing at something."""
     with db.session() as s:
         p = _need(_load(s, product_id), "product", product_id)
-        used = s.scalar(select(func.count(Verification.id)).where(Verification.product_id == product_id))
+        used = s.scalar(select(func.count(Identification.id)).where(Identification.product_id == product_id))
         if used:
             p.archived = True
             p.updated_at = utcnow()
-            return {"deleted": False, "archived": True, "reason": f"confirmed in {used} scene object(s)"}
+            return {"deleted": False, "archived": True, "reason": f"identified in {used} scene object(s)"}
         s.delete(p)
         return {"deleted": True, "archived": False}
 
 
+def compatible_filter(type_id: str):
+    """Products a detected object of `type_id` could be: the same or an easily-confused object
+    type (sneakers / shoes), or an untyped product of the same category. This only narrows what
+    a person has to look through; it never picks a product."""
+    obj = T.OBJECTS.get(type_id)
+    if obj is None:
+        raise CatalogError("invalid", f"unknown object type '{type_id}'")
+    return or_(Product.object_type.in_(list(T.compatible_types(type_id))),
+               (Product.object_type.is_(None)) & (Product.category == obj.category))
+
+
 def search_products(db: Database, q: str | None = None, category: str | None = None, object_type: str | None = None,
                     brand_id: int | None = None, include_archived: bool = False, limit: int = 48,
-                    offset: int = 0) -> dict:
-    """Paged product search (name, SKU, external id, brand name). Filtering and paging happen in
-    the database, so this stays fast with thousands of products."""
+                    offset: int = 0, compatible_with: str | None = None) -> dict:
+    """Paged product search (name, SKU, external id, brand name, variant SKU). Filtering and
+    paging happen in the database, so this stays fast with thousands of products.
+    `compatible_with` = a detected object type: only products that kind of object could be."""
     limit, offset = max(1, min(int(limit), 200)), max(0, int(offset))
     with db.session() as s:
         cond = []
@@ -277,11 +299,14 @@ def search_products(db: Database, q: str | None = None, category: str | None = N
             cond.append(Product.object_type == object_type)
         if brand_id:
             cond.append(Product.brand_id == brand_id)
+        if compatible_with:
+            cond.append(compatible_filter(compatible_with))
         base = select(Product).join(Brand)
-        if q and q.strip():
-            like = f"%{q.strip().lower()}%"
+        for word in (q or "").lower().split()[:6]:               # every word must match somewhere
+            like = f"%{word}%"
             cond.append(or_(func.lower(Product.name).like(like), func.lower(Product.sku).like(like),
-                            func.lower(Product.external_id).like(like), func.lower(Brand.name).like(like)))
+                            func.lower(Product.external_id).like(like), func.lower(Brand.name).like(like),
+                            Product.id.in_(select(ProductVariant.product_id).where(func.lower(ProductVariant.sku).like(like)))))
         total = s.scalar(select(func.count()).select_from(base.where(*cond).subquery()))
         rows = s.scalars(base.where(*cond).order_by(Product.updated_at.desc(), Product.id.desc())
                          .limit(limit).offset(offset)
@@ -353,6 +378,8 @@ def update_variant(db: Database, variant_id: int, **fields) -> dict:
 
 def delete_variant(db: Database, variant_id: int) -> None:
     with db.session() as s:
+        if s.scalar(select(func.count(Identification.id)).where(Identification.variant_id == variant_id)):
+            raise CatalogError("conflict", "this variant is used by an identification; change that identification first")
         s.delete(_need(s.get(ProductVariant, variant_id), "variant", variant_id))
 
 

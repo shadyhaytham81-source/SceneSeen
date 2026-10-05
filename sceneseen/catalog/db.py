@@ -1,8 +1,8 @@
 """Catalogue database: schema and sessions.
 
 Local development uses one SQLite file (no server, no cloud account). Every column type used
-here is portable, so production can point `database_url` at PostgreSQL without code changes;
-the embedding table is laid out so it can become a pgvector column there (docs/CATALOG.md).
+here is portable, so production can point `database_url` at PostgreSQL without
+code changes (docs/CATALOG.md). `image_embeddings` is only used by the disabled experimental matcher.
 """
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ import datetime as dt
 from contextlib import contextmanager
 from pathlib import Path
 
-from sqlalchemy import (JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, LargeBinary, Numeric, String, Text,
+from sqlalchemy import (JSON, Boolean, DateTime, ForeignKey, Index, Integer, LargeBinary, Numeric, String, Text,
                         UniqueConstraint, create_engine, event)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2          # 2: human identifications replace the (experimental) match verifications
 IMAGE_ROLES = ("front", "back", "side", "detail", "lifestyle", "other")
 AVAILABILITY = ("unknown", "in_stock", "out_of_stock", "discontinued")
 
@@ -121,48 +121,51 @@ class ImageEmbedding(Base):
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-class Verification(Base):
-    """Current human decision for one detected object (one row per video + candidate)."""
-    __tablename__ = "verifications"
-    __table_args__ = (UniqueConstraint("video_id", "candidate_key", name="uq_verification_candidate"),)
+IDENT_STATUSES = ("brand_identified", "product_identified", "confirmed", "unknown_product", "no_product", "not_commercial")
+
+
+class Identification(Base):
+    """What a PERSON says a detected commercial object is (one current row per video + object).
+
+    Kept apart from the detection data on purpose: detections live in the per-video analysis
+    cache and are produced by a model; this table only ever holds human statements. An object
+    without a row is simply "unidentified".
+    """
+    __tablename__ = "identifications"
+    __table_args__ = (UniqueConstraint("video_id", "object_key", name="uq_identification_object"),)
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     video_id: Mapped[str] = mapped_column(String(32), index=True)
     video_name: Mapped[str | None] = mapped_column(String(500))
-    candidate_key: Mapped[str] = mapped_column(String(32))
+    object_key: Mapped[str] = mapped_column(String(32))                    # the grouped object (all its occurrences)
     scene_id: Mapped[int | None] = mapped_column(Integer)
-    type_id: Mapped[str] = mapped_column(String(40))
+    type_id: Mapped[str] = mapped_column(String(40))                       # generic label at the time, for reports
     label: Mapped[str | None] = mapped_column(String(120))
-    status: Mapped[str] = mapped_column(String(20))                        # confirmed | no_match
-    product_id: Mapped[int | None] = mapped_column(ForeignKey("products.id"))
+    status: Mapped[str] = mapped_column(String(24))                        # one of IDENT_STATUSES
+    brand_id: Mapped[int | None] = mapped_column(ForeignKey("brands.id"), index=True)
+    product_id: Mapped[int | None] = mapped_column(ForeignKey("products.id"), index=True)
     variant_id: Mapped[int | None] = mapped_column(ForeignKey("product_variants.id"))
-    brand_id: Mapped[int | None] = mapped_column(ForeignKey("brands.id"))
-    source: Mapped[str | None] = mapped_column(String(20))                 # suggestion | search
-    suggestion_rank: Mapped[int | None] = mapped_column(Integer)
-    match_score: Mapped[float | None] = mapped_column(Float)
-    match_confidence: Mapped[float | None] = mapped_column(Float)
-    match_state: Mapped[str | None] = mapped_column(String(20))
-    detection_confidence: Mapped[float | None] = mapped_column(Float)
-    commercial_relevance: Mapped[float | None] = mapped_column(Float)
-    models: Mapped[dict] = mapped_column(JSON, default=dict)               # detector / embedder / taxonomy versions
-    snapshot: Mapped[dict] = mapped_column(JSON, default=dict)             # what was on screen when decided
-    decided_by: Mapped[str] = mapped_column(String(120))
-    decided_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    notes: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(20), default="human")       # always "human" today
+    identified_by: Mapped[str] = mapped_column(String(120))
+    identified_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    brand: Mapped[Brand | None] = relationship()
     product: Mapped[Product | None] = relationship()
+    variant: Mapped[ProductVariant | None] = relationship()
 
 
-class VerificationEvent(Base):
-    """Append-only audit trail: every confirm / reject / change / clear, never updated or deleted."""
-    __tablename__ = "verification_events"
+class IdentificationEvent(Base):
+    """Append-only history: every identification, change and removal, with the value before it.
+    Rows are never updated or deleted, so no identification is ever silently overwritten."""
+    __tablename__ = "identification_events"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     video_id: Mapped[str] = mapped_column(String(32), index=True)
-    candidate_key: Mapped[str] = mapped_column(String(32), index=True)
-    action: Mapped[str] = mapped_column(String(20))                        # confirm | no_match | change | clear
-    product_id: Mapped[int | None] = mapped_column(Integer)
-    previous_product_id: Mapped[int | None] = mapped_column(Integer)
-    previous_status: Mapped[str | None] = mapped_column(String(20))
+    object_key: Mapped[str] = mapped_column(String(32), index=True)
+    action: Mapped[str] = mapped_column(String(20))                        # identify | change | clear
     actor: Mapped[str] = mapped_column(String(120))
     at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    before: Mapped[dict | None] = mapped_column(JSON)                      # {status, brand_id, brand, product_id, ...}
+    after: Mapped[dict | None] = mapped_column(JSON)
+    notes: Mapped[str | None] = mapped_column(Text)
 
 
 class Database:
@@ -184,8 +187,11 @@ class Database:
         self._Session = sessionmaker(self.engine, expire_on_commit=False, future=True)
         Base.metadata.create_all(self.engine)
         with self.session() as s:
-            if s.get(Meta, "schema_version") is None:
+            row = s.get(Meta, "schema_version")
+            if row is None:
                 s.add(Meta(key="schema_version", value=str(SCHEMA_VERSION)))
+            elif row.value != str(SCHEMA_VERSION):      # only additive changes so far: create_all added the new tables
+                row.value = str(SCHEMA_VERSION)
 
     @contextmanager
     def session(self):

@@ -5,7 +5,7 @@ import pytest
 from sceneseen.catalog import service as S
 from sceneseen.catalog.db import Database, ImageEmbedding
 from sceneseen.catalog.images import ImageError, ImageStore
-from sceneseen.matching import verification as V
+from sceneseen.catalog import identification as I
 
 from .fakes import jpeg, pattern
 
@@ -167,23 +167,53 @@ def test_search_filter_and_paging_on_a_larger_catalogue(cat):
     assert S.search_products(db, category="fashion")["total"] == 600
     assert S.search_products(db, object_type="laptop")["total"] == 600
     assert S.search_products(db, q="SKU0777")["items"][0]["name"] == "Item 0777"
-    assert S.search_products(db, q="item 00", category="electronics")["total"] == 50
+    assert S.search_products(db, q="item 000", category="electronics")["total"] == 6      # 0000..0008 even + 1000
     assert S.search_products(db, limit=10 ** 6)["limit"] == 200            # page size is capped
     assert S.category_counts(db) == {"electronics": 600, "fashion": 600}
     S.update_product(db, r["items"][0]["id"], archived=True)
     assert S.search_products(db)["total"] == 1199 and S.search_products(db, include_archived=True)["total"] == 1200
 
 
-def test_confirmed_product_is_archived_not_deleted(cat):
+def test_identified_product_is_archived_not_deleted(cat):
     db, _ = cat
     p = product(db)
-    cand = {"key": "abc123", "type_id": "smartphone", "label": "Smartphone", "scene_id": 1, "detection_confidence": 0.8,
-            "commercial_relevance": 0.7}
-    V.decide(db, "vid1", cand, "confirm", "shady", product_id=p["id"])
+    v = S.add_variant(db, p["id"], name="Black")
+    obj = {"key": "abc123", "type_id": "smartphone", "label": "Smartphone", "scene_id": 1}
+    I.identify(db, "vid1", obj, "shady", product_id=p["id"], variant_id=v["id"])
+    with pytest.raises(S.CatalogError) as e:
+        S.delete_variant(db, v["id"])                       # a variant in use cannot vanish
+    assert e.value.code == "conflict"
     r = S.delete_product(db, p["id"])
     assert r["deleted"] is False and r["archived"] is True
     assert S.get_product(db, p["id"])["archived"] is True
-    assert V.for_video(db, "vid1")["abc123"]["product"]["archived"] is True      # the audit trail still resolves
+    assert I.for_video(db, "vid1")["abc123"]["product"]["archived"] is True      # the identification still resolves
+
+
+def test_compatible_filter_and_sku_search(cat):
+    """Once the generic object is known, only products that object could be are offered."""
+    db, _ = cat
+    sneaker = product(db, brand="Nike", name="Air Force 1", category="fashion", object_type="sneakers", sku="AF1-WHT")
+    shoe = product(db, brand="Clarks", name="Desert Boot", category="fashion", object_type="shoes", sku="CL-1")
+    untyped = product(db, brand="Nike", name="Mystery fashion item", category="fashion")
+    shirt = product(db, brand="Nike", name="Dri-FIT Tee", category="fashion", object_type="shirt")
+    tv = product(db, brand="Samsung", name="Frame TV", category="electronics", object_type="television")
+    phone = product(db, brand="Samsung", name="Galaxy S", category="electronics", object_type="smartphone")
+    ids = lambda r: {x["id"] for x in r["items"]}     # noqa: E731
+    got = ids(S.search_products(db, compatible_with="sneakers"))
+    assert got == {sneaker["id"], shoe["id"], untyped["id"]}        # footwear group + untyped fashion; no TV, phone, shirt
+    assert ids(S.search_products(db, compatible_with="television")) == {tv["id"]}
+    assert ids(S.search_products(db, compatible_with="sneakers", brand_id=sneaker["brand"]["id"])) == {sneaker["id"], untyped["id"]}
+    assert ids(S.search_products(db, q="af1-wht")) == {sneaker["id"]}                 # SKU search
+    assert ids(S.search_products(db, q="nike force")) == {sneaker["id"]}              # brand + name words
+    assert ids(S.search_products(db, q="galaxy", compatible_with="sneakers")) == set()
+    v = S.add_variant(db, shoe["id"], name="Sand / 43", sku="CL-1-SND-43")
+    assert ids(S.search_products(db, q="snd-43")) == {shoe["id"]} and v["sku"]        # variant SKU finds its product
+    with pytest.raises(S.CatalogError):
+        S.search_products(db, compatible_with="not_a_type")
+    brands = S.list_brands(db, compatible_with="sneakers")
+    assert [(b["name"], b["product_count"]) for b in brands] == [("Nike", 2), ("Clarks", 1), ("Samsung", 0)]
+    assert [b["name"] for b in S.list_brands(db, q="sam")] == ["Samsung"]
+    assert phone["id"] and shirt["id"]
 
 
 def test_database_survives_reopen_and_reports_schema(tmp_path):
