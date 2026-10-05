@@ -91,3 +91,32 @@ min_relevance = 0.45             # commercial relevance needed to be shown
 describe_colors = true           # "White sneakers" when one colour clearly dominates
 context_min_confidence = 0.60    # scene venue is reported only when this sure ...
 context_min_margin = 0.15        # ... and this far ahead of the runner-up
+
+[catalog]
+# Phase 2B: brand / product catalogue. SQLite by default (one local file, no server). Any SQLAlchemy URL
+# works; for production use PostgreSQL: "postgresql+psycopg://user:password@host/sceneseen".
+# The environment variable SCENESEEN_DATABASE_URL overrides this (keep credentials out of this file).
+database_url = "sqlite:///data/catalog/catalog.db"
+images_dir = "data/catalog/images"     # content-addressed product images (sha256 file names)
+
+[matching]
+# Phase 2B: detected object -> ranked catalogue candidates. Every number below was measured, not guessed:
+# scripts/product_matching_study.py, reports/product_matching/, docs/MATCHING.md
+embedder = "openclip_b32"        # same weights Phase 1 already uses; DINOv2 small/base were not better (docs/MATCHING.md)
+device = "auto"
+batch_size = 32
+colour_weight = 0.5              # score = cosine + colour_weight * colour-histogram intersection
+max_occurrences = 5              # occurrence crops of one object that are averaged
+crop_pad = 0.08
+shortlist = 200                  # images kept after the cosine stage before colour re-ranking
+top_k = 5                        # candidates shown per object
+# match confidence = sigmoid(conf_w_score*score + conf_w_margin*(lead over the next product) + conf_bias)
+conf_w_score = 2.703
+conf_w_margin = 18.441
+conf_bias = -4.991
+high_confidence = 0.80           # held-out: 93 % of these were the right product
+possible_confidence = 0.50       # held-out: 58 %
+uncertain_confidence = 0.25      # below this: "no reliable match" (held-out: 9 %)
+background_score = 1.047         # score a WRONG product typically reaches (used when there is no runner-up)
+min_products_for_high = 5        # fewer comparable products than this: never "high confidence"
+calibration_version = "2026-10-05/openclip_b32/colour0.5/62-objects"

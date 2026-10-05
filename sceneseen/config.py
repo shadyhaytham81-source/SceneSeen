@@ -2,6 +2,7 @@
 with typed accessors for the sections each stage needs."""
 from __future__ import annotations
 
+import os
 import copy
 import hashlib
 import json
@@ -93,6 +94,37 @@ class CommercialConfig:
 
 
 @dataclass(frozen=True)
+class CatalogConfig:
+    """Phase 2B: brand / product catalogue storage."""
+    database_url: str = "sqlite:///data/catalog/catalog.db"   # PostgreSQL in production: postgresql+psycopg://...
+    images_dir: str = "data/catalog/images"
+
+
+@dataclass(frozen=True)
+class MatchingConfig:
+    """Phase 2B: product matching. Thresholds come from scripts/product_matching_study.py."""
+    embedder: str = "openclip_b32"
+    device: str = "auto"
+    batch_size: int = 32
+    colour_weight: float = 0.5           # score = cosine + colour_weight * colour-histogram intersection
+    max_occurrences: int = 5             # occurrence crops of one object used as evidence
+    crop_pad: float = 0.08
+    shortlist: int = 200
+    top_k: int = 5
+    # match confidence = sigmoid(conf_w_score * score + conf_w_margin * margin + conf_bias), where margin is
+    # the lead over the runner-up product (the signal that separates a real match from a lookalike).
+    conf_w_score: float = 2.703
+    conf_w_margin: float = 18.441
+    conf_bias: float = -4.991
+    high_confidence: float = 0.80        # held-out: top candidate correct 93 % of the time
+    possible_confidence: float = 0.50    # 58 %
+    uncertain_confidence: float = 0.25   # 50 %; below: no reliable match (9 %)
+    background_score: float = 1.047      # typical best score of a WRONG product (75th percentile in the study)
+    min_products_for_high: int = 5       # fewer comparable products: runner-up floored, state capped at "possible"
+    calibration_version: str = "2026-10-05/openclip_b32/colour0.5/62-objects"
+
+
+@dataclass(frozen=True)
 class BoundaryModelConfig:
     """Optional learned scene-boundary classifier. Empty path = hand-designed rule (default)."""
     path: str = ""
@@ -124,6 +156,8 @@ class Config:
     unique_shots: UniqueShotsConfig = UniqueShotsConfig()
     boundary_model: BoundaryModelConfig = BoundaryModelConfig()
     commercial: CommercialConfig = CommercialConfig()
+    catalog: CatalogConfig = CatalogConfig()
+    matching: MatchingConfig = MatchingConfig()
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -165,7 +199,18 @@ def load_config(*override_files: str | Path | None) -> Config:
         unique_shots=_build(UniqueShotsConfig, raw.get("unique_shots", {})),
         boundary_model=_build(BoundaryModelConfig, raw.get("boundary_model", {})),
         commercial=_build(CommercialConfig, raw.get("commercial", {})),
+        catalog=_build(CatalogConfig, raw.get("catalog", {})),
+        matching=_build(MatchingConfig, raw.get("matching", {})),
     )
+
+
+def catalog_paths(cfg: "Config") -> tuple[str, Path]:
+    """(database URL, image folder) with relative locations resolved against the project root."""
+    url = os.environ.get("SCENESEEN_DATABASE_URL") or cfg.catalog.database_url
+    if url.startswith("sqlite:///") and not Path(url[len("sqlite:///"):]).is_absolute():
+        url = "sqlite:///" + str(ROOT / url[len("sqlite:///"):])
+    img = Path(cfg.catalog.images_dir)
+    return url, (img if img.is_absolute() else ROOT / img)
 
 
 def config_hash(section) -> str:
