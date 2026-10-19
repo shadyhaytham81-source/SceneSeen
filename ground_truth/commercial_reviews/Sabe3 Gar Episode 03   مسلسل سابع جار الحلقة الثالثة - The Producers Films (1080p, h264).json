@@ -1,0 +1,29 @@
+{
+ "video": "Sabe3 Gar Episode 03   مسلسل سابع جار الحلقة الثالثة - The Producers Films (1080p, h264).mp4",
+ "reviews": {
+  "ee6c3409e12b": {
+   "verdict": "correct",
+   "type_id": "television",
+   "label": "Television",
+   "category": "electronics",
+   "scene_id": 1,
+   "detection_confidence": 0.7955,
+   "commercial_relevance": 0.7758,
+   "displayed": true,
+   "shot_id": 0,
+   "box": [
+    0.2856,
+    0.1359,
+    0.8324,
+    0.8167
+   ],
+   "frame_hash": "267e2192e29a2815",
+   "model": "google/owlv2-base-patch16-ensemble",
+   "detector_key": "506e038f9fbb",
+   "taxonomy_version": "2026.10-4",
+   "reviewer": "",
+   "reviewed": "2026-10-05T16:16:33"
+  }
+ },
+ "missed": []
+}
