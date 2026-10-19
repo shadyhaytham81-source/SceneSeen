@@ -77,6 +77,22 @@ class UniqueShotsConfig:
 
 
 @dataclass(frozen=True)
+class CommercialConfig:
+    """Phase 2A: commercial objects + scene context (runs on top of Phase 1; never changes it)."""
+    detector: str = "owlv2"              # owlv2 | grounding_dino  (commercial/detector.py)
+    device: str = "auto"                 # auto -> cuda / mps / cpu
+    batch_size: int = 4
+    frame_long_side: int = 1280          # representative frames are extracted at this size
+    frame_positions: tuple = (0.5,)      # relative positions inside each unique shot's representative
+    store_threshold: float = 0.10        # detections kept in the cache (so display thresholds can change freely)
+    min_confidence: float = 0.40         # global floor; each object type adds its own tier (taxonomy.py)
+    min_relevance: float = 0.45          # ... and this commercial relevance
+    describe_colors: bool = True
+    context_min_confidence: float = 0.60   # scene venue is reported only when this sure ...
+    context_min_margin: float = 0.15       # ... and this far ahead of the runner-up; otherwise "unknown"
+
+
+@dataclass(frozen=True)
 class BoundaryModelConfig:
     """Optional learned scene-boundary classifier. Empty path = hand-designed rule (default)."""
     path: str = ""
@@ -107,6 +123,7 @@ class Config:
     paths: Paths
     unique_shots: UniqueShotsConfig = UniqueShotsConfig()
     boundary_model: BoundaryModelConfig = BoundaryModelConfig()
+    commercial: CommercialConfig = CommercialConfig()
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -147,6 +164,7 @@ def load_config(*override_files: str | Path | None) -> Config:
         paths=Paths(**paths),
         unique_shots=_build(UniqueShotsConfig, raw.get("unique_shots", {})),
         boundary_model=_build(BoundaryModelConfig, raw.get("boundary_model", {})),
+        commercial=_build(CommercialConfig, raw.get("commercial", {})),
     )
 
 

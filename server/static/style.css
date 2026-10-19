@@ -101,6 +101,46 @@ video { display: block; width: 100%; max-height: 62vh; background: #000; }
 .card .dur { color: var(--muted); font-size: 13px; }
 .card .row { display: flex; gap: 8px; margin-top: 10px; }
 
+/* commercial objects (phase 2A) */
+.comm { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 22px; }
+.comm h3 { margin: 0 0 2px; font-size: 20px; font-weight: 650; }
+.comm p { margin: 0 0 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
+.chip { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 999px; border: 1px solid #3a3a43; background: transparent; color: var(--muted); cursor: pointer; }
+.chip.on { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
+.chip .n { opacity: .65; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.cscene { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 10px; }
+.cscene > summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.cscene > summary::-webkit-details-marker { display: none; }
+.cscene .sname { font-size: 12px; letter-spacing: .14em; font-weight: 700; color: var(--c); min-width: 76px; }
+.tag { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--bg3); color: var(--text); white-space: nowrap; }
+.tag.soft { color: var(--muted); }
+.cgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; padding: 0 14px 14px; }
+.ccard { background: var(--bg3); border: 1.5px solid transparent; border-radius: 10px; overflow: hidden; text-align: left; padding: 0; color: inherit; font: inherit; cursor: pointer; display: flex; flex-direction: column; }
+.ccard:hover, .ccard.open { border-color: var(--accent); }
+.ccard.hiddenc { opacity: .5; border-style: dashed; border-color: #3a3a43; }
+.ccard .crop { aspect-ratio: 4/3; background: #000 center/cover no-repeat; position: relative; }
+.ccard .crop .seen { position: absolute; right: 6px; top: 6px; background: rgba(15,15,16,.82); font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; }
+.ccard .cbody { padding: 9px 10px 10px; display: flex; flex-direction: column; gap: 2px; }
+.ccard .clabel { font-size: 14px; font-weight: 600; line-height: 1.25; }
+.ccard .ccat { font-size: 12px; color: var(--muted); }
+.ccard .cmeta { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ccard .cdev { font-size: 11px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 6px; padding-top: 6px; line-height: 1.45; word-break: break-word; }
+.cdetail { grid-column: 1 / -1; background: var(--bg3); border-radius: 10px; padding: 12px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 760px) { .cdetail { grid-template-columns: 1fr; } }
+.cdetail h5 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+.cframe { position: relative; border-radius: 8px; overflow: hidden; background: #000; align-self: start; }
+.cframe img { display: block; width: 100%; }
+.cframe .bbox { position: absolute; border: 2px solid var(--accent); box-shadow: 0 0 0 1px rgba(0,0,0,.6); border-radius: 3px; pointer-events: none; }
+.cocc { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; max-height: 300px; overflow: auto; }
+.rev { display: inline-flex; gap: 4px; margin-top: 6px; }
+.rev button { font: inherit; font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid #3a3a43; background: transparent; color: var(--muted); cursor: pointer; }
+.rev button.on.ok { background: #2f6f4e; color: #fff; border-color: #2f6f4e; }
+.rev button.on.bad { background: #8a3a32; color: #fff; border-color: #8a3a32; }
+.missed { padding: 0 14px 12px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--muted); }
+.missed input { font: inherit; font-size: 12px; background: var(--bg3); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 4px 8px; min-width: 180px; }
+.cempty { padding: 0 14px 14px; font-size: 13px; color: var(--muted); }
+
 /* unique shots */
 .uniq { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 22px; }
 .uniq-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }

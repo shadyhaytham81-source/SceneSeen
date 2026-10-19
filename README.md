@@ -20,6 +20,7 @@ CLIP model ≈ 0.6 GB, plus cache). Internet access is needed once, for `pip ins
 |---|---|
 | FFmpeg | **Nothing to install.** `imageio-ffmpeg` ships a static ffmpeg binary inside the venv (Mac/Windows/Linux). A system ffmpeg is not used. |
 | TransNetV2 weights (shot detection) | Bundled inside the `transnetv2-pytorch` pip package. |
+| OWLv2 detector weights (Phase 2A) | Downloaded automatically from Hugging Face on the first commercial analysis (≈ 620 MB). Apache-2.0. |
 | OpenCLIP ViT-B/32 (LAION-2B) weights | Downloaded automatically from Hugging Face on the first analysis (≈ 600 MB, cached in `~/.cache/huggingface`). No account or token needed. |
 | GPU | Optional. Uses Apple MPS or CUDA for CLIP if present, otherwise CPU. Shot detection always runs on CPU. |
 
@@ -150,6 +151,13 @@ with new parameters instantly (preview only).
 Repeated camera set-ups are grouped under one representative thumbnail; click it to see every original occurrence,
 or switch to **All Shots**. Nothing is removed. Details: [docs/UNIQUE_SHOTS.md](docs/UNIQUE_SHOTS.md).
 
+**Commercial Objects (Phase 2A):** under the scene cards, click **Run Commercial Analysis**. SceneSeen looks at one
+frame per unique shot (not every frame) and lists the commercially relevant objects of each scene (fashion,
+accessories, electronics, cars, food & drink, furniture, beauty), with a crop, confidence and "Seen ×N", plus the
+scene's context (e.g. home interior, indoor). Click an object to see the frame and every place it appears; filter by
+category. No brands or products are identified. Results are cached, so reopening is instant. If the model is
+unavailable the page says so and everything else keeps working. Details: [docs/COMMERCIAL.md](docs/COMMERCIAL.md).
+
 **Command line**
 
 ```bash
@@ -161,6 +169,9 @@ python -m sceneseen evaluate --split dev                 # score against human l
 python -m sceneseen tune                                 # tune thresholds on dev only (with leave-one-out check)
 python -m sceneseen evaluate --split val                 # held-out validation videos
 python -m sceneseen train                                # train + validate the optional boundary classifier
+python -m sceneseen commercial path/to/video.mp4         # Phase 2A: commercial objects + scene context
+python -m sceneseen commercial-report                    # precision of reviewed commercial detections
+python scripts/commercial_benchmark.py --device mps      # detector speed and memory on this machine
 python scripts/error_analysis.py                         # diagnose every false/missed boundary
 python scripts/unique_shots_study.py evaluate            # re-run the Unique Shots similarity comparison
 ```
@@ -206,9 +217,10 @@ thresholds takes milliseconds.
 
 ## Status
 
-Phase 1 is built, tested (automated test suite: `python -m pytest`) and evaluated on 6 labelled videos: **F1@2s 0.68**, vs 0.14 for "every cut is
-a scene" and 0.32 for adjacent-shot similarity. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and
-[docs/RESULTS.md](docs/RESULTS.md). **Phase 2 has not started and must not start yet.**
+Phase 1 (scenes + Unique Shots) is built, tested and evaluated: **F1@±2s 0.68** on dev, 0.81 on validation.
+Phase 2A (commercial scene understanding) is built on top of it: **84.9 % precision** of displayed objects on
+held-out videos. Product matching, placement opportunities and viewer features are **not** started. See
+[PROJECT_STATUS.md](PROJECT_STATUS.md), [docs/RESULTS.md](docs/RESULTS.md) and [docs/COMMERCIAL.md](docs/COMMERCIAL.md).
 
 ## Project layout
 
@@ -227,6 +239,7 @@ sceneseen/            core package (no web code)
   similarity.py       vectorised shot-to-shot similarity measures (CLIP cosine, colour, pHash, SSIM)
   unique.py           Unique Shots: repeated-shot grouping per scene (post-processing)
   learning.py         boundary examples from ground truth, optional classifier, versioned artifacts
+  commercial/         Phase 2A: taxonomy, detector, relevance, dedup, scene context, analysis, review
 server/               FastAPI app + static UI (plain HTML/CSS/JS)
 config/default.toml   all thresholds and model choices
 ground_truth/         human scene-boundary labels (9 videos), dev/val/test roles, provenance, video manifest

@@ -97,6 +97,24 @@
 
       <div class="cards" id="cards"></div>
 
+      <!-- COMMERCIAL OBJECTS (Phase 2A) -->
+      <section class="comm" id="commPanel" hidden>
+        <div class="uniq-head">
+          <div>
+            <h3>Commercial Objects</h3>
+            <p class="muted small" id="commSummary"></p>
+          </div>
+          <div class="row">
+            <button class="btn primary small" id="commRun" type="button" hidden>Run Commercial Analysis</button>
+            <span class="muted small" id="commState"></span>
+          </div>
+        </div>
+        <div class="bar" id="commBarWrap" hidden><div id="commBar"></div></div>
+        <div class="chips" id="commFilters" role="tablist" aria-label="Category filter"></div>
+        <div id="commScenes"></div>
+        <div class="panel dev-only" id="commDev" hidden></div>
+      </section>
+
       <!-- UNIQUE SHOTS -->
       <section class="uniq" id="uniqPanel" hidden>
         <div class="uniq-head">

@@ -227,6 +227,142 @@ def unique_shots(vid: str):
     return rec
 
 
+# ---------------------------------------------------------------- routes: commercial (Phase 2A)
+
+def _commercial(vid: str, allow_inference: bool, progress=None) -> dict:
+    """Commercial analysis for the CURRENT scenes. Never raises for model/cache problems."""
+    from sceneseen.commercial import analysis as commercial_analysis
+    from sceneseen.commercial import review
+
+    result = _current_result(vid)
+    info, stage = _info(vid), _stage(vid)
+    unique = unique_shots_for(CFG, info, stage, result["scenes"])
+    rec = commercial_analysis.analyze(
+        stage["cache"].dir, info, stage["shots"], result["scenes"], unique, CFG.commercial,
+        clip=stage["features"]["clip"], clip_model=(CFG.features.model, CFG.features.pretrained),
+        cache_root=CFG.paths.cache_dir, allow_inference=allow_inference, progress=progress)
+    rec["video"] = result["video"]
+    rec["frame_base"] = f"/api/videos/{vid}/commercial/frame/"
+    return review.attach(rec, review.ReviewStore(CFG.paths.ground_truth_dir, result["video"]).load())
+
+
+def _commercial_unavailable(e: Exception) -> dict:
+    log.error("commercial analysis failed: %s: %s", type(e).__name__, e)
+    return {"status": "unavailable", "reason": f"{type(e).__name__}: {e}", "scenes": [], "summary": {}, "notes": []}
+
+
+@app.get("/api/videos/{vid}/commercial")
+def commercial_result(vid: str):
+    """Cached commercial results (instant; never loads the detector). status tells the UI whether
+    the analysis is ready, partial, not run yet, or unavailable."""
+    _meta(vid)
+    try:
+        return _commercial(vid, allow_inference=False)
+    except HTTPException:
+        raise
+    except Exception as e:   # Phase 1 must keep working whatever happens here
+        return _commercial_unavailable(e)
+
+
+@app.post("/api/videos/{vid}/commercial/analyze")
+def start_commercial(vid: str):
+    _meta(vid)
+    _current_result(vid)
+
+    def work(job: Job) -> dict:
+        labels = {"frames": "Preparing representative frames", "detect": "Finding commercial objects"}
+
+        def progress(stage, frac):
+            job.stage, job.stage_label = stage, labels.get(stage, "Analysing")
+            job.progress = (0.1 * frac) if stage == "frames" else 0.1 + 0.88 * frac
+
+        rec = _commercial(vid, allow_inference=True, progress=progress)
+        if rec["status"] == "unavailable":
+            raise RuntimeError(rec.get("reason") or "commercial analysis unavailable")
+        return {"status": rec["status"], "summary": rec["summary"]}
+
+    return jobs.submit(f"commercial-{vid}", "commercial", work).public()
+
+
+@app.get("/api/videos/{vid}/commercial/frame/{shot}/{pos}")
+def commercial_frame(vid: str, shot: int, pos: int, box: str = "", pad: float = 0.35, size: int = 0):
+    """A representative frame, or a padded crop of it (box = x1,y1,x2,y2 as fractions)."""
+    import io
+
+    from fastapi.responses import Response
+    from PIL import Image
+
+    from sceneseen.commercial.frames import frame_name
+
+    p = _cache(vid).path("commercial") / f"frames_{CFG.commercial.frame_long_side}" / frame_name(shot, pos / 100)
+    if not p.exists():
+        raise HTTPException(404, "no such frame")
+    headers = {"Cache-Control": "max-age=86400"}
+    if not box and not size:
+        return FileResponse(p, media_type="image/jpeg", headers=headers)
+    try:
+        with Image.open(p) as im:
+            im = im.convert("RGB")
+            if box:
+                x1, y1, x2, y2 = (float(v) for v in box.split(","))
+                w, h = im.size
+                bw, bh = (x2 - x1) * w, (y2 - y1) * h
+                side = max(bw, bh) * (1 + 2 * pad)
+                side = max(side, 0.12 * min(w, h))            # tiny objects still get some context
+                cx, cy = (x1 + x2) / 2 * w, (y1 + y2) / 2 * h
+                im = im.crop((int(max(0, cx - side / 2)), int(max(0, cy - side / 2)),
+                              int(min(w, cx + side / 2)), int(min(h, cy + side / 2))))
+            if size:
+                im.thumbnail((size, size))
+            buf = io.BytesIO()
+            im.save(buf, "JPEG", quality=85)
+    except (ValueError, OSError):
+        raise HTTPException(400, "bad crop request")
+    return Response(buf.getvalue(), media_type="image/jpeg", headers=headers)
+
+
+class ReviewBody(BaseModel):
+    key: str | None = None
+    verdict: str | None = None       # correct | wrong | null (clear)
+    missed_label: str | None = None  # report an object SceneSeen did not show
+    scene_id: int | None = None
+    reviewer: str = ""
+    note: str = ""
+
+
+@app.post("/api/videos/{vid}/commercial/review")
+def commercial_review(vid: str, body: ReviewBody):
+    from sceneseen.commercial import review
+
+    rec = _commercial(vid, allow_inference=False)
+    store = review.ReviewStore(CFG.paths.ground_truth_dir, rec["video"])
+    if body.missed_label:
+        if body.scene_id is None or not body.missed_label.strip():
+            raise HTTPException(400, "missed_label needs a scene_id")
+        store.add_missed(body.scene_id, body.missed_label, body.reviewer, body.note)
+    else:
+        cand = next((c for sc in rec["scenes"] for c in sc["candidates"] if c["key"] == body.key), None)
+        if cand is None:
+            raise HTTPException(404, "unknown candidate")
+        try:
+            store.set_verdict(cand, body.verdict, body.reviewer, rec["model"], rec["taxonomy_version"])
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+    return {"saved": True, "precision": _review_summary()["displayed"]}
+
+
+def _review_summary() -> dict:
+    from sceneseen.commercial import review
+
+    return review.summarize(CFG.paths.ground_truth_dir, None, CFG.commercial.min_relevance, CFG.commercial.min_confidence)
+
+
+@app.get("/api/commercial/report")
+def commercial_report():
+    """Precision of reviewed detections under the current display rules."""
+    return _review_summary()
+
+
 # ---------------------------------------------------------------- routes: media
 
 @app.get("/api/videos/{vid}/media")

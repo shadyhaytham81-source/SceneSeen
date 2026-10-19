@@ -1,6 +1,6 @@
 # SceneSeen — Project Status
 
-_Last updated: 2026-10-03 · Phase 1 (scene segmentation) · **Phase 2 has NOT started**_
+_Last updated: 2026-10-05 · Phase 1 done · **Phase 2A (commercial scene understanding) built** · Phase 2B+ not started_
 
 ## What SceneSeen is
 A graduation project. The long-term vision is to understand film and TV content scene by scene, so that products,
@@ -106,7 +106,24 @@ Practical note: keep the project **outside iCloud-synced folders** (Desktop/Docu
 macOS evicts videos, caches and even virtualenv files there, which makes reads hang. If it must stay there, name
 the environment `.venv.nosync` (iCloud ignores `*.nosync`).
 
-## ⛔ Phase 2 has NOT started — and must not start yet
-No object detection, clothing/product recognition, commercial-opportunity scoring, catalog matching or viewer
-features until Phase 1 is frozen and has its final unseen-test result. Unique Shots is a Phase 1 post-processing
-layer (it reduces how many frames a later phase would need to look at); it detects no objects.
+## Phase 2A — Commercial Scene Understanding (2026-10-05, branch `feature/commercial-scene-understanding`)
+Built on top of Phase 1 without changing it (dev F1 0.677 / validation 0.812 identical before and after).
+
+- **What it does:** per scene, commercially relevant objects (38 types in 7 categories) with confidence, relevance,
+  crop and occurrence list, plus scene context (venue, indoor/outdoor). No brand or product identification.
+- **Model:** OWLv2 base (Apache-2.0), pretrained, nothing trained. Chosen over Grounding DINO (7× slower here,
+  merged labels), Florence-2 (generic labels, no confidence scores) and OmDet-Turbo (fast, ~50 % precise).
+- **Speed:** one frame per unique shot; ~0.9 s per unique shot on Apple MPS (1.5 s on CPU); a 12-minute clip takes
+  about 40 s; cached results return in under 0.3 s.
+- **Precision:** 84.9 % of displayed objects correct on 5 held-out videos (118 / 139; AI-reviewed, not yet
+  human-verified). Scene-context venues ≈ 70 %.
+- **Review tool:** Developer mode → ✓ Correct / ✗ Wrong / Missed on each object; `python -m sceneseen commercial-report`.
+- Details, measurements and known failure cases: [docs/COMMERCIAL.md](docs/COMMERCIAL.md).
+
+Next for Phase 2A: have a human confirm a sample of detections in the review tool (this replaces the AI review as
+the precision figure), and record missed objects to see what recall is losing.
+
+## ⛔ Not started — and must not start yet
+Product catalogue, exact brand/product matching, placement opportunities, QR codes / Shop-the-Episode, analytics,
+screen recognition and engagement prediction. Phase 2A exposes clean per-candidate data (type, category, crop source,
+occurrences) for them, but none of them is implemented.
