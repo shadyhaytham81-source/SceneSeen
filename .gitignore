@@ -30,6 +30,7 @@ desktop.ini
 # Only data/README.md (dataset layout instructions) is tracked.
 data/*
 !data/README.md
+scraper/output/
 
 # ---------- generated reports
 # Evaluation tables/JSON are small and part of the project record -> tracked.
