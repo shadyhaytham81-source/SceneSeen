@@ -155,6 +155,21 @@ def cmd_commercial(args, cfg) -> int:
                 flag = "" if c["displayed"] else f"   (hidden: {c['hidden_reason']})"
                 print(f"   {c['label']:<22} {c['category_name']:<24} confidence {c['detection_confidence']:.0%}  "
                       f"relevance {c['commercial_relevance']:.2f}  seen ×{c['seen_count']}{flag}")
+    if getattr(args, "match", False):
+        from .commercial import matching
+        cands = [c for sc in rec["scenes"] for c in sc["candidates"] if c["displayed"] or args.all]
+        frames_dir = stage["cache"].dir / "commercial" / f"frames_{cfg.commercial.frame_long_side}"
+        matches = matching.get_or_compute_matches(stage["cache"].dir, cands, frames_dir)
+        print("\n--- Visual Catalogue Matches (IN YOUR SHOE) ---")
+        for sc in rec["scenes"]:
+            for c in sc["candidates"]:
+                if c["key"] in matches and (c["displayed"] or args.all):
+                    m_list = matches[c["key"]]
+                    print(f"Scene {sc['scene_id']:02d} | {c['label']} ({c['category_name']}):")
+                    for m in m_list:
+                        price_str = f"{m['price']:.0f} {m['currency']}" if m.get("price") else "N/A"
+                        print(f"    -> [{m['similarity']:.0%}] {m['name']} ({m['brand']}) · {price_str}")
+
     print(f"\nTimings (s): {rec['timings']}  ·  model: {rec['model'].get('name')} on {rec['model'].get('device', 'cache')}")
     print(f"Commercial data: {out_dir / 'commercial.json'}")
     return 0
@@ -303,6 +318,26 @@ def cmd_serve(args, cfg) -> int:
     return 0
 
 
+def cmd_match_catalogue(args, cfg) -> int:
+    """Build or inspect persistent catalogue embeddings index (Phase 2B)."""
+    from .commercial.matching import CatalogueIndex
+    root = ROOT / "scraper" / "output" / args.brand
+    if not root.exists():
+        root = ROOT / "data" / "catalogues" / args.brand
+    if not root.exists():
+        print(f"Brand catalogue not found at {root}")
+        return 1
+    idx = CatalogueIndex(brand=args.brand, brand_dir=root)
+    if args.build_index or not idx.is_built():
+        print(f"Building/updating index for brand: {args.brand}...")
+        count = idx.build_or_update()
+        print(f"Done! {count} images embedded. Total indexed: {len(idx.items)}.")
+    else:
+        loaded = idx.load()
+        print(f"Brand: {args.brand} | Index loaded: {loaded} | Total items: {len(idx.items)} | Embeddings shape: {idx.embeddings.shape}")
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="sceneseen", description="SceneSeen Phase 1 — video scene segmentation")
     p.add_argument("--config", action="append", default=[],
@@ -322,6 +357,10 @@ def main(argv=None) -> int:
     co.add_argument("video")
     co.add_argument("--out", help="output directory (default data/exports/<video stem>)")
     co.add_argument("--all", action="store_true", help="also list candidates hidden from the normal view")
+    co.add_argument("--match", action="store_true", help="also retrieve top-3 visual catalogue matches (Phase 2B)")
+    mc = sub.add_parser("match-catalogue", help="Phase 2B: build or inspect catalogue embeddings index")
+    mc.add_argument("--brand", default="in_your_shoe", help="brand directory name (default: in_your_shoe)")
+    mc.add_argument("--build-index", action="store_true", help="force building or updating embeddings")
     cr = sub.add_parser("commercial-report", help="precision of reviewed commercial detections")
     cr.add_argument("--min-confidence", type=float, default=None,
                     help="re-evaluate existing reviews at this display threshold")
@@ -338,7 +377,8 @@ def main(argv=None) -> int:
     cfg = load_config(*args.config)
     return {"analyze": cmd_analyze, "evaluate": cmd_evaluate, "tune": cmd_tune, "serve": cmd_serve,
             "check-data": cmd_check_data, "train": cmd_train,
-            "commercial": cmd_commercial, "commercial-report": cmd_commercial_report}[args.cmd](args, cfg)
+            "commercial": cmd_commercial, "commercial-report": cmd_commercial_report,
+            "match-catalogue": cmd_match_catalogue}[args.cmd](args, cfg)
 
 
 if __name__ == "__main__":

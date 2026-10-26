@@ -1,6 +1,6 @@
 # SceneSeen — Project Status
 
-_Last updated: 2026-10-05 · Phase 1 done · **Phase 2A (commercial scene understanding) built** · Phase 2B+ not started_
+_Last updated: 2026-10-26 · Phase 1 done · Phase 2A (commercial scene understanding) done · **Phase 2B (product catalogue matching) built**_
 
 ## What SceneSeen is
 A graduation project. The long-term vision is to understand film and TV content scene by scene, so that products,

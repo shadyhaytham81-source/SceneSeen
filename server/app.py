@@ -243,6 +243,13 @@ def _commercial(vid: str, allow_inference: bool, progress=None) -> dict:
         cache_root=CFG.paths.cache_dir, allow_inference=allow_inference, progress=progress)
     rec["video"] = result["video"]
     rec["frame_base"] = f"/api/videos/{vid}/commercial/frame/"
+    matches_file = stage["cache"].dir / "commercial" / "matches.json"
+    rec["matches"] = {}
+    if matches_file.exists():
+        try:
+            rec["matches"] = json.loads(matches_file.read_text(encoding="utf-8"))
+        except Exception:
+            rec["matches"] = {}
     return review.attach(rec, review.ReviewStore(CFG.paths.ground_truth_dir, result["video"]).load())
 
 
@@ -319,6 +326,74 @@ def commercial_frame(vid: str, shot: int, pos: int, box: str = "", pad: float = 
     except (ValueError, OSError):
         raise HTTPException(400, "bad crop request")
     return Response(buf.getvalue(), media_type="image/jpeg", headers=headers)
+
+
+@app.get("/api/videos/{vid}/commercial/matches")
+def commercial_matches(vid: str, compute: bool = True):
+    """Visual product matches against the catalogue for displayed commercial candidates."""
+    from sceneseen.commercial import matching
+    from sceneseen.config import ROOT
+
+    _meta(vid)
+    cache = _cache(vid)
+    matches_file = cache.dir / "commercial" / "matches.json"
+    if not compute and matches_file.exists():
+        try:
+            cached = json.loads(matches_file.read_text(encoding="utf-8"))
+            return {"status": "ready", "count": len(cached), "matches": cached}
+        except Exception:
+            pass
+
+    rec = _commercial(vid, allow_inference=False)
+    frames_dir = cache.dir / "commercial" / f"frames_{CFG.commercial.frame_long_side}"
+    cands = [c for sc in rec.get("scenes", []) for c in sc.get("candidates", []) if c.get("displayed")]
+    matches = matching.get_or_compute_matches(cache.dir, cands, frames_dir, allow_compute=compute)
+    return {"status": "ready", "count": len(matches), "matches": matches}
+
+
+@app.get("/api/catalogue/image")
+def catalogue_image(rel: str = "", brand: str = "in_your_shoe", size: int = 0):
+    """Serve a local downloaded catalogue image securely with optional thumbnailing."""
+    import io
+    from fastapi.responses import Response
+    from PIL import Image
+    from sceneseen.config import ROOT
+
+    clean_rel = Path(rel).as_posix().lstrip("/")
+    if ".." in clean_rel:
+        raise HTTPException(400, "invalid path")
+
+    candidates = [
+        ROOT / "scraper" / "output" / brand / "images" / clean_rel,
+        ROOT / "scraper" / "output" / clean_rel,
+        ROOT / "scraper" / "output" / brand / clean_rel,
+        ROOT / "data" / "catalogues" / brand / "images" / clean_rel,
+        ROOT / "data" / "catalogues" / clean_rel,
+        ROOT / "data" / "catalogues" / brand / clean_rel,
+        ROOT / clean_rel,
+    ]
+    target: Path | None = None
+    for p in candidates:
+        if p.is_file() and p.exists():
+            target = p
+            break
+
+    if target is None:
+        raise HTTPException(404, f"catalogue image not found for '{rel}'")
+
+    headers = {"Cache-Control": "max-age=86400"}
+    if not size:
+        return FileResponse(target, headers=headers)
+
+    try:
+        with Image.open(target) as im:
+            im = im.convert("RGB")
+            im.thumbnail((size, size))
+            buf = io.BytesIO()
+            im.save(buf, "JPEG", quality=85)
+        return Response(buf.getvalue(), media_type="image/jpeg", headers=headers)
+    except Exception:
+        return FileResponse(target, headers=headers)
 
 
 class ReviewBody(BaseModel):
