@@ -9,7 +9,21 @@ Built as a data-collection layer for SceneSeen Phase 2B+: product catalogue matc
 ## Directory Layout
 
 ```
+scraper/
+  base.py, shopify.py, brands/inyourshoe.py      code (in Git)
+  output/                                        everything below is generated and NOT in Git
+    in_your_shoe/
+      catalogue.jsonl                            one product per line (source of truth)
+      catalogue.csv
+      images/in_your_shoe/<handle>/<file>.jpg    downloaded product images
+      embeddings.npz                             created by: python -m sceneseen match-catalogue --build-index
+      embeddings_manifest.json, embeddings_meta.json
+```
 
+The dataset can live anywhere: copy the `in_your_shoe/` folder to another location and set
+`SCENESEEN_CATALOGUE_DIR` to the folder that contains it (see docs/MATCHING.md). Note that `local_images` in
+`catalogue.jsonl` holds absolute paths from the machine that scraped; the matcher does not use them, it finds images
+by `handle` under `images/`.
 
 ---
 
