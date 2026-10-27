@@ -11,7 +11,6 @@ from sceneseen.commercial.matching import (
     CatalogueItem,
     MultiBrandCatalogue,
     ProductMatch,
-    get_or_compute_matches,
 )
 from server.app import app
 
@@ -138,71 +137,30 @@ def test_multibrand_matching_and_deduplication(dummy_brand_dir):
     assert matches[0].similarity >= matches[1].similarity
 
 
-def test_api_catalogue_image_endpoint():
+def test_api_catalogue_image_endpoint(dummy_brand_dir, monkeypatch):
+    """Images are served only from the configured catalogue folders (no real dataset needed)."""
+    monkeypatch.setenv("SCENESEEN_CATALOGUE_DIR", str(dummy_brand_dir.parent))
     client = TestClient(app)
+    rel = "test_brand/product-1/img_0.jpg"
+    r = client.get(f"/api/catalogue/image?rel={rel}&brand=test_brand")
+    assert r.status_code == 200 and len(r.content) > 100
+    r_thumb = client.get(f"/api/catalogue/image?rel={rel}&brand=test_brand&size=16")
+    assert r_thumb.status_code == 200 and r_thumb.headers["content-type"] == "image/jpeg"
+    assert client.get(f"/api/catalogue/image?rel={rel}").status_code == 200          # brand taken from the path
+    # path traversal and lookups outside the catalogue folders
+    for bad in ("../../etc/passwd", "test_brand/../../catalogue.jsonl", "/etc/passwd"):
+        assert client.get("/api/catalogue/image", params={"rel": bad, "brand": "test_brand"}).status_code in (400, 404)
+    assert client.get("/api/catalogue/image", params={"rel": "x.jpg", "brand": "../x"}).status_code == 400
+    assert client.get("/api/catalogue/image?rel=test_brand/does_not_exist.jpg").status_code == 404
 
-    # Existing IN YOUR SHOE image test
-    rel = "in_your_shoe/black-oversized-leather-jacket/black-oversized-leather-jacket-leather-jacket-in-your-shoe-513016.jpg"
-    r = client.get(f"/api/catalogue/image?rel={rel}&brand=in_your_shoe")
+
+def test_api_catalogue_status_reports_missing_dataset(tmp_path, monkeypatch):
+    monkeypatch.setenv("SCENESEEN_CATALOGUE_DIR", str(tmp_path / "nothing-here"))
+    r = TestClient(app).get("/api/catalogue/status")
     assert r.status_code == 200
-    assert r.headers["content-type"] in ("image/jpeg", "image/jpg")
-    assert len(r.content) > 1000
-
-    # Test thumbnail resize
-    r_thumb = client.get(f"/api/catalogue/image?rel={rel}&brand=in_your_shoe&size=120")
-    assert r_thumb.status_code == 200
-    assert len(r_thumb.content) < len(r.content)
-
-    # Path traversal protection
-    r_bad = client.get("/api/catalogue/image?rel=../../etc/passwd")
-    assert r_bad.status_code in (400, 404)
-
-    # Non-existent image
-    r_missing = client.get("/api/catalogue/image?rel=does_not_exist.jpg")
-    assert r_missing.status_code == 404
+    d = r.json()
+    assert d["status"] == "missing_dataset" and "SCENESEEN_CATALOGUE_DIR" in d["message"]
 
 
-def test_api_commercial_matches_endpoint(tmp_path):
-    import server.app as app_mod
-    cache_dir = app_mod.CFG.paths.cache_dir
-    vid = "testmatchvid123"
-    vdir = cache_dir / vid
-    vdir.mkdir(parents=True, exist_ok=True)
-    (vdir / "upload.json").write_text(json.dumps({"name": "test.mp4", "path": str(tmp_path / "test.mp4")}))
-    (vdir / "info.json").write_text(json.dumps({
-        "path": str(tmp_path / "test.mp4"),
-        "duration": 10.0,
-        "fps": 25.0,
-        "width": 640,
-        "height": 360,
-        "video_codec": "h264",
-        "sar": "1:1",
-        "dar": "16:9",
-    }))
-    (vdir / "result.json").write_text(json.dumps({
-        "video": "test.mp4",
-        "duration": 10.0,
-        "scene_count": 1,
-        "scenes": [{"scene_id": 1, "start_seconds": 0.0, "end_seconds": 10.0, "shot_start": 0, "shot_end": 0}],
-        "debug": {"shots": [{"shot_id": 0, "start_frame": 0, "end_frame": 100, "start_seconds": 0.0, "end_seconds": 10.0}],
-                  "feature_key": "feat123", "timings": {}}
-    }))
-    comm_dir = vdir / "commercial"
-    comm_dir.mkdir(exist_ok=True)
-    (comm_dir / "matches.json").write_text(json.dumps({
-        "cand1": [{
-            "product_id": "p1", "brand": "IN YOUR SHOE", "name": "Item 1",
-            "category": "Fashion", "product_type": "Tee", "price": 499.0,
-            "compare_at_price": None, "currency": "EGP", "url": "https://example.com",
-            "similarity": 0.85, "best_image_rel": "rel/path.jpg", "best_image_url": ""
-        }]
-    }))
-
-    client = TestClient(app_mod.app)
-    r = client.get(f"/api/videos/{vid}/commercial/matches?compute=false")
-    assert r.status_code == 200
-    data = r.json()
-    assert data["status"] == "ready"
-    assert "cand1" in data["matches"]
-    assert data["matches"]["cand1"][0]["name"] == "Item 1"
-    assert data["matches"]["cand1"][0]["similarity"] == 0.85
+def test_api_matches_unknown_video_is_404():
+    assert TestClient(app).get("/api/videos/0123456789abcdef/commercial/matches").status_code == 404

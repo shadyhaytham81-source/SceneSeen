@@ -159,16 +159,27 @@ def cmd_commercial(args, cfg) -> int:
         from .commercial import matching
         cands = [c for sc in rec["scenes"] for c in sc["candidates"] if c["displayed"] or args.all]
         frames_dir = stage["cache"].dir / "commercial" / f"frames_{cfg.commercial.frame_long_side}"
-        matches = matching.get_or_compute_matches(stage["cache"].dir, cands, frames_dir)
-        print("\n--- Visual Catalogue Matches (IN YOUR SHOE) ---")
+        res = matching.get_or_compute_matches(stage["cache"].dir, cands, frames_dir, cfg=cfg.catalogue)
+        print("\n--- Catalogue candidates (visual similarity, not exact-match probabilities) ---")
+        if res["status"] != "ready":
+            print(f"Product matching unavailable: {res['message']}")
+        for w in res.get("warnings", []):
+            print(f"  note: {w}")
         for sc in rec["scenes"]:
             for c in sc["candidates"]:
-                if c["key"] in matches and (c["displayed"] or args.all):
-                    m_list = matches[c["key"]]
-                    print(f"Scene {sc['scene_id']:02d} | {c['label']} ({c['category_name']}):")
-                    for m in m_list:
-                        price_str = f"{m['price']:.0f} {m['currency']}" if m.get("price") else "N/A"
-                        print(f"    -> [{m['similarity']:.0%}] {m['name']} ({m['brand']}) · {price_str}")
+                m = res["matches"].get(c["key"])
+                if m is None or not (c["displayed"] or args.all):
+                    continue
+                q = m["query"]
+                print(f"Scene {sc['scene_id']:02d} | {c['label']} → looking for {', '.join(q['strict_types']) or '—'}"
+                      f"{' · colour ' + q['color'] if q['color'] else ''}")
+                for x in m["candidates"]:
+                    price = f"{x['price']:.0f} {x['currency']}" if x.get("price") is not None else "price n/a"
+                    tier = " [broader category]" if x["match_tier"] == "broad" else ""
+                    print(f"    -> similarity {x['similarity']:.3f}  {x['name']} ({x['brand']}) · {price} · "
+                          f"{x['normalized_type']} · colour {x['color_relation']}{tier}")
+                if m["note"]:
+                    print(f"    ({m['note']})")
 
     print(f"\nTimings (s): {rec['timings']}  ·  model: {rec['model'].get('name')} on {rec['model'].get('device', 'cache')}")
     print(f"Commercial data: {out_dir / 'commercial.json'}")
@@ -319,23 +330,100 @@ def cmd_serve(args, cfg) -> int:
 
 
 def cmd_match_catalogue(args, cfg) -> int:
-    """Build or inspect persistent catalogue embeddings index (Phase 2B)."""
-    from .commercial.matching import CatalogueIndex
-    root = ROOT / "scraper" / "output" / args.brand
-    if not root.exists():
-        root = ROOT / "data" / "catalogues" / args.brand
-    if not root.exists():
-        print(f"Brand catalogue not found at {root}")
+    """Phase 2B: build, check or verify the catalogue embeddings; report how products are categorised."""
+    from collections import Counter
+
+    import numpy as np
+
+    from .commercial.matching import ClipEncoder, MultiBrandCatalogue
+    from .commercial.product_taxonomy import load_taxonomy
+    from .config import catalogue_dirs
+
+    cc = cfg.catalogue
+    mb = MultiBrandCatalogue(catalogue_dirs(cc))
+    mb.discover_and_load()
+    if not mb.indices:
+        print(mb.status(cc.model, cc.pretrained)["message"])
         return 1
-    idx = CatalogueIndex(brand=args.brand, brand_dir=root)
-    if args.build_index or not idx.is_built():
-        print(f"Building/updating index for brand: {args.brand}...")
-        count = idx.build_or_update()
-        print(f"Done! {count} images embedded. Total indexed: {len(idx.items)}.")
-    else:
-        loaded = idx.load()
-        print(f"Brand: {args.brand} | Index loaded: {loaded} | Total items: {len(idx.items)} | Embeddings shape: {idx.embeddings.shape}")
-    return 0
+    brands = [args.brand] if args.brand else list(mb.indices)
+    unknown = [b for b in brands if b not in mb.indices]
+    if unknown:
+        print(f"Brand folder(s) not found: {', '.join(unknown)}. Found: {', '.join(mb.indices)} in "
+              f"{', '.join(str(r) for r in mb.roots)}")
+        return 1
+    if args.build_index:
+        enc = ClipEncoder(cc.model, cc.pretrained, cc.device)
+        for b in brands:
+            idx = mb.indices[b]
+            print(f"Building/updating embeddings for '{b}' in {idx.brand_dir} with {cc.model}/{cc.pretrained} …")
+            n = idx.build_or_update(batch_size=cc.batch_size, encoder=enc, force=args.force,
+                                    progress=lambda d, t: print(f"  {d}/{t} images", end="\r", flush=True))
+            print(f"\n  {n} image(s) embedded now · {len(idx.items)} indexed for "
+                  f"{len({it.product_id for it in idx.items})} products")
+    if args.taxonomy_report:
+        tax = load_taxonomy()
+        for b in brands:
+            idx = mb.indices[b]
+            infos = {}
+            for p in idx.products():
+                infos[str(p.get("product_id"))] = (p, tax.describe_product(p.get("name", ""), p.get("product_type", "")))
+            by_type = Counter(i.product_type or "unknown" for _, i in infos.values())
+            with_colour = sum(1 for _, i in infos.values() if i.colors)
+            print(f"\n{b}: {len(infos)} products (taxonomy {tax.version}); colour read from the name for {with_colour}")
+            for t, n in by_type.most_common():
+                umb = tax.types[t]["umbrella"] if t in tax.types else "—"
+                print(f"  {t:<18} {umb:<15} {n}")
+            unk = Counter(p.get("product_type") or "(none)" for p, i in infos.values() if i.product_type is None)
+            if unk:
+                print("  product types left UNKNOWN (never offered as matches; add keywords to product_taxonomy.json):")
+                for t, n in unk.most_common():
+                    print(f"    {t!r}: {n}")
+    if args.verify:
+        enc = ClipEncoder(cc.model, cc.pretrained, cc.device)
+        bad = 0
+        for b in brands:
+            idx = mb.indices[b]
+            if not idx.items:
+                print(f"{b}: no embeddings to verify")
+                continue
+            products = {str(p.get("product_id")): p for p in idx.products()}
+            rows = np.random.default_rng(0).choice(len(idx.items), size=min(args.verify, len(idx.items)), replace=False)
+            from PIL import Image
+            ims, keep = [], []
+            for r in rows:
+                it = idx.items[r]
+                if it.product_id not in products:
+                    print(f"  MISMATCH {b} row {r}: product {it.product_id} is not in catalogue.jsonl")
+                    bad += 1
+                    continue
+                try:
+                    with Image.open(idx.brand_dir / it.image_path) as im:
+                        ims.append(im.convert("RGB"))
+                    keep.append(r)
+                except Exception as e:
+                    print(f"  MISSING {b} row {r}: {it.image_path} ({e})")
+                    bad += 1
+            if ims:
+                fresh = enc.embed(ims)
+                sims = (fresh * idx.embeddings[keep]).sum(axis=1)
+                for r, s in zip(keep, sims):
+                    if s < 0.99:
+                        bad += 1
+                        print(f"  MISMATCH {b} row {r}: stored vector does not belong to {idx.items[r].image_path} (cos {s:.3f})")
+                print(f"{b}: re-embedded {len(keep)} sampled images; min cosine with stored row {sims.min():.4f}")
+        print("verify: OK" if not bad else f"verify: {bad} problem(s) — rebuild with --build-index --force")
+        if bad:
+            return 1
+    st = mb.status(cc.model, cc.pretrained)
+    print(f"\nStatus: {st['status']}" + (f" — {st['message']}" if st["message"] else ""))
+    for b in st["brands"]:
+        stale = b.get("stale") or {}
+        print(f"  {b['brand']:<20} {b['status']:<13} {b['products']} products · {b['images']} images · {b['dir']}"
+              + (f" · on disk {stale.get('on_disk')}, new {stale.get('new')}, changed {stale.get('changed')}, "
+                 f"removed {stale.get('removed')}" if stale else ""))
+    for w in st.get("warnings", []):
+        print(f"  note: {w}")
+    return 0 if st["status"] == "ready" else 1
 
 
 def main(argv=None) -> int:
@@ -358,9 +446,13 @@ def main(argv=None) -> int:
     co.add_argument("--out", help="output directory (default data/exports/<video stem>)")
     co.add_argument("--all", action="store_true", help="also list candidates hidden from the normal view")
     co.add_argument("--match", action="store_true", help="also retrieve top-3 visual catalogue matches (Phase 2B)")
-    mc = sub.add_parser("match-catalogue", help="Phase 2B: build or inspect catalogue embeddings index")
-    mc.add_argument("--brand", default="in_your_shoe", help="brand directory name (default: in_your_shoe)")
-    mc.add_argument("--build-index", action="store_true", help="force building or updating embeddings")
+    mc = sub.add_parser("match-catalogue", help="Phase 2B: build / check / verify catalogue embeddings")
+    mc.add_argument("--brand", default=None, help="brand folder name, e.g. in_your_shoe (default: every brand found)")
+    mc.add_argument("--build-index", action="store_true", help="embed new or changed images (unchanged ones are kept)")
+    mc.add_argument("--force", action="store_true", help="with --build-index: re-embed every image")
+    mc.add_argument("--verify", type=int, nargs="?", const=50, default=0, metavar="N",
+                    help="re-embed N sampled images and check they match their stored rows and product records")
+    mc.add_argument("--taxonomy-report", action="store_true", help="how products are categorised; lists unknown types")
     cr = sub.add_parser("commercial-report", help="precision of reviewed commercial detections")
     cr.add_argument("--min-confidence", type=float, default=None,
                     help="re-evaluate existing reviews at this display threshold")

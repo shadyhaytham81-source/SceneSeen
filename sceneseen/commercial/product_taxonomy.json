@@ -1,0 +1,863 @@
+{
+  "version": "2026-10-27.1",
+  "notes": [
+    "Maps catalogue product names / product types and detector labels to standard product types, umbrella categories and colours.",
+    "Edit this file to add brands: add keywords to an existing product type, or add a new type (and put it in type_order).",
+    "Matching is on whole words after lower-casing; '&' becomes 'and'; hyphens and punctuation become spaces. Plural 's' is handled automatically.",
+    "type_order matters: the first type whose keyword appears wins, so specific types (overshirt, sweatshirt, swim shorts) come before generic ones (shirt, shorts).",
+    "Anything not matched stays 'unknown' on purpose. Unknown products are never offered as matches; run `python -m sceneseen match-catalogue --taxonomy-report` to list them.",
+    "Product colours are read only from clear colour words; food/motif words (cherry, coffee, mint…) are deliberately not colours because printed designs use them.",
+    "'short' alone is not a keyword: 'Short Sleeve Shirt' is a shirt and 'Short Socks' are socks."
+  ],
+  "umbrellas": {
+    "tops": "T-shirts, tops, tanks, polos, shirts",
+    "upper_layers": "Hoodies, sweatshirts, knitwear, cardigans, vests",
+    "outerwear": "Jackets, overshirts, blazers, coats",
+    "trousers": "Trousers, jeans, sweatpants, leggings",
+    "shorts": "Shorts of every kind",
+    "skirts_dresses": "Skirts and dresses",
+    "sets": "Two-piece sets (photos show two garments)",
+    "sleepwear": "Pyjama sets and pyjama shorts",
+    "one_piece": "Onesies, jumpsuits",
+    "headwear": "Caps, hats, bandanas",
+    "footwear": "Shoes and sneakers",
+    "socks": "Socks",
+    "bags": "Bags and backpacks",
+    "accessories": "Jewellery, eyewear, watches",
+    "home": "Towels, candles and other non-clothing items"
+  },
+  "product_types": {
+    "polo": {
+      "umbrella": "tops",
+      "keywords": [
+        "polo",
+        "polo t shirt",
+        "polo shirt"
+      ]
+    },
+    "overshirt": {
+      "umbrella": "outerwear",
+      "keywords": [
+        "overshirt",
+        "overshirt jacket",
+        "shacket",
+        "shirt jacket"
+      ]
+    },
+    "sweatshirt": {
+      "umbrella": "upper_layers",
+      "keywords": [
+        "sweatshirt",
+        "crewneck",
+        "crew neck",
+        "pullover",
+        "jumper"
+      ]
+    },
+    "hoodie": {
+      "umbrella": "upper_layers",
+      "keywords": [
+        "hoodie",
+        "hoody",
+        "hooded"
+      ]
+    },
+    "cardigan": {
+      "umbrella": "upper_layers",
+      "keywords": [
+        "cardigan"
+      ]
+    },
+    "sweater": {
+      "umbrella": "upper_layers",
+      "keywords": [
+        "sweater",
+        "knitwear"
+      ]
+    },
+    "vest": {
+      "umbrella": "upper_layers",
+      "keywords": [
+        "vest",
+        "waistcoat",
+        "gilet"
+      ]
+    },
+    "blazer": {
+      "umbrella": "outerwear",
+      "keywords": [
+        "blazer",
+        "suit jacket"
+      ]
+    },
+    "coat": {
+      "umbrella": "outerwear",
+      "keywords": [
+        "coat",
+        "trench",
+        "parka",
+        "puffer"
+      ]
+    },
+    "jacket": {
+      "umbrella": "outerwear",
+      "keywords": [
+        "jacket",
+        "windbreaker",
+        "bomber",
+        "corduroy jacket",
+        "curduroy jacket",
+        "fleece jacket",
+        "leather jacket"
+      ]
+    },
+    "pajama_set": {
+      "umbrella": "sleepwear",
+      "keywords": [
+        "pjoy",
+        "pjoys",
+        "pyjama",
+        "pyjamas",
+        "pajama",
+        "pajamas",
+        "pjs"
+      ]
+    },
+    "pajama_shorts": {
+      "umbrella": "sleepwear",
+      "keywords": [
+        "pshort",
+        "pshorts",
+        "pyjama shorts",
+        "pajama shorts",
+        "kids boxer shorts",
+        "boxer shorts"
+      ]
+    },
+    "set": {
+      "umbrella": "sets",
+      "keywords": [
+        "set",
+        "co ord",
+        "coord",
+        "two piece"
+      ]
+    },
+    "swim_shorts": {
+      "umbrella": "shorts",
+      "keywords": [
+        "swim shorts",
+        "swim short",
+        "swimshorts",
+        "board shorts",
+        "swim trunks"
+      ]
+    },
+    "sweat_shorts": {
+      "umbrella": "shorts",
+      "keywords": [
+        "swort",
+        "sworts",
+        "sweat shorts",
+        "jogger shorts"
+      ]
+    },
+    "denim_shorts": {
+      "umbrella": "shorts",
+      "keywords": [
+        "jort",
+        "jorts",
+        "denim shorts"
+      ]
+    },
+    "shorts": {
+      "umbrella": "shorts",
+      "keywords": [
+        "shorts",
+        "bermuda",
+        "bermuda shorts",
+        "knit short",
+        "cargo shorts"
+      ]
+    },
+    "sweatpants": {
+      "umbrella": "trousers",
+      "keywords": [
+        "swant",
+        "swants",
+        "sweatpants",
+        "sweat pants",
+        "joggers",
+        "jogger",
+        "track pants",
+        "trackpants"
+      ]
+    },
+    "leggings": {
+      "umbrella": "trousers",
+      "keywords": [
+        "leggings",
+        "legging",
+        "flared leggings"
+      ]
+    },
+    "jeans": {
+      "umbrella": "trousers",
+      "keywords": [
+        "jeans",
+        "jean",
+        "denim pants",
+        "denim trousers"
+      ]
+    },
+    "lounge_pants": {
+      "umbrella": "trousers",
+      "keywords": [
+        "boxer pants",
+        "lounge pants"
+      ]
+    },
+    "trousers": {
+      "umbrella": "trousers",
+      "keywords": [
+        "pants",
+        "trousers",
+        "trouser",
+        "chinos",
+        "cargo pants",
+        "slacks"
+      ]
+    },
+    "skirt": {
+      "umbrella": "skirts_dresses",
+      "keywords": [
+        "skirt",
+        "skort"
+      ]
+    },
+    "dress": {
+      "umbrella": "skirts_dresses",
+      "keywords": [
+        "dress",
+        "gown"
+      ]
+    },
+    "onesie": {
+      "umbrella": "one_piece",
+      "keywords": [
+        "onesie",
+        "onesies",
+        "jumpsuit",
+        "romper",
+        "bodysuit"
+      ]
+    },
+    "jersey": {
+      "umbrella": "tops",
+      "keywords": [
+        "jersey"
+      ]
+    },
+    "tank_top": {
+      "umbrella": "tops",
+      "keywords": [
+        "tank top",
+        "tank",
+        "sleeveless tee",
+        "sleeveless top",
+        "camisole",
+        "cami"
+      ]
+    },
+    "long_sleeve_tee": {
+      "umbrella": "tops",
+      "keywords": [
+        "long sleeves",
+        "long sleeve",
+        "longsleeve"
+      ]
+    },
+    "knit_top": {
+      "umbrella": "tops",
+      "keywords": [
+        "knit top"
+      ]
+    },
+    "shirt": {
+      "umbrella": "tops",
+      "keywords": [
+        "shirt",
+        "shirts",
+        "button up",
+        "button down",
+        "blouse"
+      ]
+    },
+    "tshirt": {
+      "umbrella": "tops",
+      "keywords": [
+        "t shirt",
+        "tshirt",
+        "tee",
+        "tees",
+        "baby tee"
+      ]
+    },
+    "top": {
+      "umbrella": "tops",
+      "keywords": [
+        "top",
+        "tops",
+        "crop top"
+      ]
+    },
+    "cap": {
+      "umbrella": "headwear",
+      "keywords": [
+        "cap",
+        "baseball cap",
+        "snapback",
+        "trucker"
+      ]
+    },
+    "bucket_hat": {
+      "umbrella": "headwear",
+      "keywords": [
+        "bucket",
+        "bucket hat"
+      ]
+    },
+    "beanie": {
+      "umbrella": "headwear",
+      "keywords": [
+        "beanie"
+      ]
+    },
+    "hat": {
+      "umbrella": "headwear",
+      "keywords": [
+        "hat"
+      ]
+    },
+    "bandana": {
+      "umbrella": "headwear",
+      "keywords": [
+        "bandana",
+        "headscarf"
+      ]
+    },
+    "socks": {
+      "umbrella": "socks",
+      "keywords": [
+        "socks",
+        "sock",
+        "neck socks"
+      ]
+    },
+    "sneakers": {
+      "umbrella": "footwear",
+      "keywords": [
+        "sneakers",
+        "sneaker",
+        "trainers"
+      ]
+    },
+    "shoes": {
+      "umbrella": "footwear",
+      "keywords": [
+        "shoes",
+        "shoe",
+        "boots",
+        "loafers",
+        "sandals",
+        "slides",
+        "slippers",
+        "heels"
+      ]
+    },
+    "backpack": {
+      "umbrella": "bags",
+      "keywords": [
+        "backpack",
+        "rucksack"
+      ]
+    },
+    "tote_bag": {
+      "umbrella": "bags",
+      "keywords": [
+        "tote",
+        "tote bag"
+      ]
+    },
+    "bag": {
+      "umbrella": "bags",
+      "keywords": [
+        "bag",
+        "handbag",
+        "crossbody",
+        "purse",
+        "pouch"
+      ]
+    },
+    "jewelry": {
+      "umbrella": "accessories",
+      "keywords": [
+        "necklace",
+        "bracelet",
+        "earrings",
+        "earring",
+        "ring",
+        "jewelry",
+        "jewellery"
+      ]
+    },
+    "eyewear": {
+      "umbrella": "accessories",
+      "keywords": [
+        "sunglasses",
+        "eyeglasses",
+        "glasses"
+      ]
+    },
+    "watch": {
+      "umbrella": "accessories",
+      "keywords": [
+        "watch",
+        "wristwatch"
+      ]
+    },
+    "towel": {
+      "umbrella": "home",
+      "keywords": [
+        "towel",
+        "towels",
+        "beach towel"
+      ]
+    },
+    "candle": {
+      "umbrella": "home",
+      "keywords": [
+        "candle",
+        "candles"
+      ]
+    }
+  },
+  "type_order": [
+    "polo",
+    "overshirt",
+    "hoodie",
+    "sweatshirt",
+    "cardigan",
+    "sweater",
+    "vest",
+    "blazer",
+    "coat",
+    "jacket",
+    "pajama_shorts",
+    "pajama_set",
+    "set",
+    "swim_shorts",
+    "sweat_shorts",
+    "denim_shorts",
+    "sweatpants",
+    "leggings",
+    "jeans",
+    "lounge_pants",
+    "shorts",
+    "trousers",
+    "skirt",
+    "dress",
+    "onesie",
+    "jersey",
+    "tank_top",
+    "long_sleeve_tee",
+    "knit_top",
+    "shirt",
+    "tshirt",
+    "top",
+    "bucket_hat",
+    "beanie",
+    "cap",
+    "bandana",
+    "hat",
+    "socks",
+    "sneakers",
+    "shoes",
+    "backpack",
+    "tote_bag",
+    "bag",
+    "jewelry",
+    "eyewear",
+    "watch",
+    "towel",
+    "candle"
+  ],
+  "ambiguous_keywords": {
+    "wrap": "IN YOUR SHOE 'Flowy Wraps' could be wrap skirts or beach wraps; left unknown until confirmed",
+    "knot": "used in names like 'Knot Vest'; not a garment type on its own"
+  },
+  "detections": {
+    "tshirt": {
+      "strict": [
+        "tshirt",
+        "long_sleeve_tee",
+        "tank_top",
+        "polo",
+        "jersey",
+        "top",
+        "knit_top"
+      ],
+      "broad": [
+        "shirt",
+        "sweatshirt",
+        "hoodie",
+        "vest",
+        "set",
+        "pajama_set"
+      ]
+    },
+    "shirt": {
+      "strict": [
+        "shirt",
+        "overshirt",
+        "polo"
+      ],
+      "broad": [
+        "tshirt",
+        "long_sleeve_tee",
+        "top",
+        "knit_top",
+        "jersey",
+        "jacket",
+        "set",
+        "pajama_set"
+      ]
+    },
+    "jacket": {
+      "strict": [
+        "jacket",
+        "overshirt",
+        "blazer",
+        "coat"
+      ],
+      "broad": [
+        "hoodie",
+        "sweatshirt",
+        "cardigan",
+        "sweater",
+        "vest",
+        "shirt"
+      ]
+    },
+    "suit": {
+      "strict": [
+        "blazer",
+        "jacket"
+      ],
+      "broad": [
+        "coat",
+        "overshirt",
+        "vest"
+      ]
+    },
+    "dress": {
+      "strict": [
+        "dress"
+      ],
+      "broad": [
+        "skirt"
+      ]
+    },
+    "trousers": {
+      "strict": [
+        "trousers",
+        "jeans",
+        "sweatpants",
+        "leggings",
+        "lounge_pants"
+      ],
+      "broad": [
+        "shorts",
+        "sweat_shorts",
+        "denim_shorts",
+        "swim_shorts",
+        "pajama_shorts",
+        "set",
+        "pajama_set"
+      ]
+    },
+    "sneakers": {
+      "strict": [
+        "sneakers"
+      ],
+      "broad": [
+        "shoes"
+      ]
+    },
+    "shoes": {
+      "strict": [
+        "shoes"
+      ],
+      "broad": [
+        "sneakers"
+      ]
+    },
+    "hat": {
+      "strict": [
+        "cap",
+        "bucket_hat",
+        "beanie",
+        "hat"
+      ],
+      "broad": [
+        "bandana"
+      ]
+    },
+    "handbag": {
+      "strict": [
+        "bag",
+        "tote_bag"
+      ],
+      "broad": [
+        "backpack"
+      ]
+    },
+    "backpack": {
+      "strict": [
+        "backpack"
+      ],
+      "broad": [
+        "bag",
+        "tote_bag"
+      ]
+    },
+    "jewelry": {
+      "strict": [
+        "jewelry"
+      ],
+      "broad": []
+    },
+    "sunglasses": {
+      "strict": [
+        "eyewear"
+      ],
+      "broad": []
+    },
+    "eyeglasses": {
+      "strict": [
+        "eyewear"
+      ],
+      "broad": []
+    },
+    "watch": {
+      "strict": [
+        "watch"
+      ],
+      "broad": []
+    }
+  },
+  "detection_label_synonyms": {
+    "pants": "trousers",
+    "trouser": "trousers",
+    "jeans": "trousers",
+    "chinos": "trousers",
+    "joggers": "trousers",
+    "t shirt": "tshirt",
+    "tshirt": "tshirt",
+    "tee": "tshirt",
+    "top": "tshirt",
+    "shirt": "shirt",
+    "blouse": "shirt",
+    "jacket": "jacket",
+    "coat": "jacket",
+    "blazer": "suit",
+    "suit jacket": "suit",
+    "suit": "suit",
+    "dress": "dress",
+    "sneakers": "sneakers",
+    "trainers": "sneakers",
+    "shoes": "shoes",
+    "boots": "shoes",
+    "hat": "hat",
+    "cap": "hat",
+    "baseball cap": "hat",
+    "beanie": "hat",
+    "handbag": "handbag",
+    "bag": "handbag",
+    "backpack": "backpack",
+    "necklace": "jewelry",
+    "earrings": "jewelry",
+    "bracelet": "jewelry",
+    "sunglasses": "sunglasses",
+    "eyeglasses": "eyeglasses",
+    "glasses": "eyeglasses",
+    "watch": "watch",
+    "wristwatch": "watch"
+  },
+  "colors": {
+    "black": [
+      "black",
+      "jet black",
+      "charcoal black"
+    ],
+    "white": [
+      "white",
+      "off white",
+      "offwhite",
+      "ivory"
+    ],
+    "grey": [
+      "grey",
+      "gray",
+      "dark grey",
+      "dark gray",
+      "light grey",
+      "light gray",
+      "heather grey",
+      "charcoal",
+      "silver"
+    ],
+    "beige": [
+      "beige",
+      "cream",
+      "sand",
+      "nude",
+      "ecru",
+      "khaki",
+      "taupe"
+    ],
+    "brown": [
+      "brown",
+      "camel",
+      "camel brown",
+      "cinnamon",
+      "tan",
+      "rust"
+    ],
+    "red": [
+      "red",
+      "burgundy",
+      "maroon",
+      "crimson",
+      "brick"
+    ],
+    "pink": [
+      "pink",
+      "baby pink",
+      "rose",
+      "rose pink",
+      "dusty pink",
+      "blush",
+      "fuchsia",
+      "hot pink",
+      "magenta"
+    ],
+    "orange": [
+      "orange",
+      "coral",
+      "tangerine"
+    ],
+    "yellow": [
+      "yellow",
+      "butter yellow",
+      "mustard",
+      "gold"
+    ],
+    "green": [
+      "green",
+      "olive",
+      "lime",
+      "lime green",
+      "sage",
+      "khaki green",
+      "forest green",
+      "teal",
+      "emerald",
+      "army green"
+    ],
+    "blue": [
+      "blue",
+      "navy",
+      "navy blue",
+      "baby blue",
+      "light blue",
+      "dark blue",
+      "sky blue",
+      "royal blue",
+      "cobalt",
+      "denim blue",
+      "turquoise",
+      "indigo"
+    ],
+    "purple": [
+      "purple",
+      "dark purple",
+      "lilac",
+      "lavender",
+      "violet",
+      "plum",
+      "mauve"
+    ]
+  },
+  "near_colors": {
+    "black": [
+      "grey"
+    ],
+    "white": [
+      "grey",
+      "beige"
+    ],
+    "grey": [
+      "black",
+      "white"
+    ],
+    "beige": [
+      "white",
+      "brown"
+    ],
+    "brown": [
+      "beige",
+      "orange"
+    ],
+    "red": [
+      "pink",
+      "orange"
+    ],
+    "pink": [
+      "red",
+      "purple"
+    ],
+    "orange": [
+      "red",
+      "yellow",
+      "brown"
+    ],
+    "yellow": [
+      "orange",
+      "beige"
+    ],
+    "green": [],
+    "blue": [
+      "purple"
+    ],
+    "purple": [
+      "pink",
+      "blue"
+    ]
+  },
+  "pattern_words": [
+    "striped",
+    "stripe",
+    "stripes",
+    "plaid",
+    "checks",
+    "checked",
+    "check",
+    "camo",
+    "printed",
+    "print",
+    "grid",
+    "floral",
+    "tie dye"
+  ]
+}

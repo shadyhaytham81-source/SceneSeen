@@ -248,3 +248,8 @@ body:not(.devmode) .dev-only { display: none !important; }
   .card .range { font-size: 13px; }
   .card .label { font-size: 11px; }
 }
+
+/* product matching (phase 2B): status + fallback markers */
+.notice.warn { border-color: #6b5a2e; background: #1f1b12; }
+.pcard.broad { border-style: dashed; }
+.tier-badge { position: absolute; left: 6px; bottom: 6px; background: rgba(15,15,16,.85); color: var(--muted); font-size: 11px; padding: 2px 7px; border-radius: 999px; }

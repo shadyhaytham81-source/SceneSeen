@@ -93,6 +93,26 @@ class CommercialConfig:
 
 
 @dataclass(frozen=True)
+class CatalogueConfig:
+    """Phase 2B: product catalogues for visual matching (dataset lives OUTSIDE Git, see docs/MATCHING.md)."""
+    # Folders that contain one sub-folder per brand (<brand>/catalogue.jsonl + images/ + embeddings).
+    # Relative paths are resolved against the project root. The environment variable
+    # SCENESEEN_CATALOGUE_DIR (several folders separated by ':' on macOS/Linux, ';' on Windows)
+    # replaces this list, so each teammate can point at their own copy of the dataset.
+    dirs: tuple = ("scraper/output", "data/catalogues")
+    model: str = "ViT-B-32"              # embedding model, same for catalogue images and object crops
+    pretrained: str = "laion2b_s34b_b79k"
+    device: str = "auto"
+    batch_size: int = 64
+    top_k: int = 3
+    crop_pad: float = 0.08               # padding around the detected box (fraction of box size)
+    color_same: float = 0.04             # ranking adjustment added to cosine similarity
+    color_near: float = 0.02
+    color_different: float = -0.04
+    color_different_multicolor: float = -0.01
+
+
+@dataclass(frozen=True)
 class BoundaryModelConfig:
     """Optional learned scene-boundary classifier. Empty path = hand-designed rule (default)."""
     path: str = ""
@@ -124,6 +144,7 @@ class Config:
     unique_shots: UniqueShotsConfig = UniqueShotsConfig()
     boundary_model: BoundaryModelConfig = BoundaryModelConfig()
     commercial: CommercialConfig = CommercialConfig()
+    catalogue: CatalogueConfig = CatalogueConfig()
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -165,7 +186,21 @@ def load_config(*override_files: str | Path | None) -> Config:
         unique_shots=_build(UniqueShotsConfig, raw.get("unique_shots", {})),
         boundary_model=_build(BoundaryModelConfig, raw.get("boundary_model", {})),
         commercial=_build(CommercialConfig, raw.get("commercial", {})),
+        catalogue=_build(CatalogueConfig, raw.get("catalogue", {})),
     )
+
+
+def catalogue_dirs(cfg: "CatalogueConfig | None" = None) -> list[Path]:
+    """Folders searched for brand catalogues: $SCENESEEN_CATALOGUE_DIR if set, else [catalogue] dirs."""
+    import os
+
+    env = os.environ.get("SCENESEEN_CATALOGUE_DIR", "").strip()
+    raw = [x for x in env.split(os.pathsep) if x.strip()] if env else list((cfg or CatalogueConfig()).dirs)
+    out = []
+    for d in raw:
+        p = Path(d).expanduser()
+        out.append(p if p.is_absolute() else ROOT / p)
+    return out
 
 
 def config_hash(section) -> str:

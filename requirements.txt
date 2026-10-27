@@ -11,6 +11,7 @@ numpy==2.4.6
 scipy==1.17.1
 pillow==12.3.0
 scikit-learn==1.9.1         # only needed for `python -m sceneseen train` / calibration scripts
+requests==2.32.5            # scraper/ (product catalogue scraping)
 fastapi==0.142.2
 uvicorn==0.54.0
 python-multipart==0.0.32

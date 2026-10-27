@@ -31,6 +31,13 @@ desktop.ini
 data/*
 !data/README.md
 scraper/output/
+# product catalogue dataset + generated embeddings: never in Git, wherever they are placed
+catalogue.jsonl
+catalogue.csv
+embeddings.npz
+embeddings_manifest.json
+embeddings_meta.json
+matches.json
 
 # ---------- generated reports
 # Evaluation tables/JSON are small and part of the project record -> tracked.

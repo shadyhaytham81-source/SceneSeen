@@ -243,13 +243,6 @@ def _commercial(vid: str, allow_inference: bool, progress=None) -> dict:
         cache_root=CFG.paths.cache_dir, allow_inference=allow_inference, progress=progress)
     rec["video"] = result["video"]
     rec["frame_base"] = f"/api/videos/{vid}/commercial/frame/"
-    matches_file = stage["cache"].dir / "commercial" / "matches.json"
-    rec["matches"] = {}
-    if matches_file.exists():
-        try:
-            rec["matches"] = json.loads(matches_file.read_text(encoding="utf-8"))
-        except Exception:
-            rec["matches"] = {}
     return review.attach(rec, review.ReviewStore(CFG.paths.ground_truth_dir, result["video"]).load())
 
 
@@ -328,63 +321,92 @@ def commercial_frame(vid: str, shot: int, pos: int, box: str = "", pad: float = 
     return Response(buf.getvalue(), media_type="image/jpeg", headers=headers)
 
 
+_CATALOGUE = None
+
+
+def _catalogue(reload: bool = False):
+    """All brand catalogues found in the configured folders, loaded once (embeddings stay in memory)."""
+    global _CATALOGUE
+    from sceneseen.commercial.matching import MultiBrandCatalogue
+    from sceneseen.config import catalogue_dirs
+
+    if _CATALOGUE is None or reload:
+        _CATALOGUE = MultiBrandCatalogue(catalogue_dirs(CFG.catalogue))
+        _CATALOGUE.discover_and_load()
+    return _CATALOGUE
+
+
 @app.get("/api/videos/{vid}/commercial/matches")
-def commercial_matches(vid: str, compute: bool = True):
-    """Visual product matches against the catalogue for displayed commercial candidates."""
+def commercial_matches(vid: str, compute: bool = True, reload: bool = False):
+    """Top catalogue candidates for every displayed commercial object (Phase 2B).
+
+    status: ready | not_computed | missing_dataset | not_built | incompatible, with a message that
+    says what to do. A similarity score is visual similarity, not a probability of an exact match."""
     from sceneseen.commercial import matching
-    from sceneseen.config import ROOT
 
     _meta(vid)
     cache = _cache(vid)
-    matches_file = cache.dir / "commercial" / "matches.json"
-    if not compute and matches_file.exists():
-        try:
-            cached = json.loads(matches_file.read_text(encoding="utf-8"))
-            return {"status": "ready", "count": len(cached), "matches": cached}
-        except Exception:
-            pass
-
-    rec = _commercial(vid, allow_inference=False)
-    frames_dir = cache.dir / "commercial" / f"frames_{CFG.commercial.frame_long_side}"
+    try:
+        rec = _commercial(vid, allow_inference=False)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "unavailable", "message": f"Commercial objects unavailable ({type(e).__name__}: {e})",
+                "matches": {}}
     cands = [c for sc in rec.get("scenes", []) for c in sc.get("candidates", []) if c.get("displayed")]
-    matches = matching.get_or_compute_matches(cache.dir, cands, frames_dir, allow_compute=compute)
-    return {"status": "ready", "count": len(matches), "matches": matches}
+    frames_dir = cache.dir / "commercial" / f"frames_{CFG.commercial.frame_long_side}"
+    try:
+        res = matching.get_or_compute_matches(cache.dir, cands, frames_dir, multi_brand=_catalogue(reload),
+                                              allow_compute=compute, cfg=CFG.catalogue)
+    except Exception as e:     # a model or file problem must not break the commercial objects view
+        log.exception("product matching failed")
+        return {"status": "error", "message": f"Product matching failed: {type(e).__name__}: {e}", "matches": {}}
+    res["count"] = len(res.get("matches", {}))
+    return res
+
+
+@app.get("/api/catalogue/status")
+def catalogue_status(reload: bool = True):
+    """Which catalogues were found, whether their embeddings are usable, and what to do if not."""
+    return _catalogue(reload).status(CFG.catalogue.model, CFG.catalogue.pretrained)
 
 
 @app.get("/api/catalogue/image")
-def catalogue_image(rel: str = "", brand: str = "in_your_shoe", size: int = 0):
-    """Serve a local downloaded catalogue image securely with optional thumbnailing."""
+def catalogue_image(rel: str = "", brand: str = "", size: int = 0):
+    """A downloaded catalogue image (rel = image path relative to <brand>/images/), optionally thumbnailed.
+    Only files inside a configured catalogue folder can be served."""
     import io
+
     from fastapi.responses import Response
     from PIL import Image
-    from sceneseen.config import ROOT
 
-    clean_rel = Path(rel).as_posix().lstrip("/")
-    if ".." in clean_rel:
+    from sceneseen.config import catalogue_dirs
+
+    clean = Path(rel).as_posix().lstrip("/")
+    if not clean or ".." in Path(clean).parts or (brand and ("/" in brand or ".." in brand)):
         raise HTTPException(400, "invalid path")
-
-    candidates = [
-        ROOT / "scraper" / "output" / brand / "images" / clean_rel,
-        ROOT / "scraper" / "output" / clean_rel,
-        ROOT / "scraper" / "output" / brand / clean_rel,
-        ROOT / "data" / "catalogues" / brand / "images" / clean_rel,
-        ROOT / "data" / "catalogues" / clean_rel,
-        ROOT / "data" / "catalogues" / brand / clean_rel,
-        ROOT / clean_rel,
-    ]
-    target: Path | None = None
-    for p in candidates:
-        if p.is_file() and p.exists():
-            target = p
+    target = None
+    for root in catalogue_dirs(CFG.catalogue):
+        brands = [brand] if brand else [clean.split("/", 1)[0]]
+        for b in brands:
+            base = (root / b / "images").resolve()
+            tries = [base / clean]
+            if clean.startswith(f"{b}/"):
+                tries.append(base / clean[len(b) + 1:])          # images/<handle>/<file> layout
+            for t in tries:
+                t = t.resolve()
+                if t.is_file() and base in t.parents:
+                    target = t
+                    break
+            if target:
+                break
+        if target:
             break
-
     if target is None:
         raise HTTPException(404, f"catalogue image not found for '{rel}'")
-
     headers = {"Cache-Control": "max-age=86400"}
     if not size:
         return FileResponse(target, headers=headers)
-
     try:
         with Image.open(target) as im:
             im = im.convert("RGB")

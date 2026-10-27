@@ -272,21 +272,8 @@ async function loadCommercial(vid) {
   } catch (e) {
     state.commercial = { status: "unavailable", reason: e.message, scenes: [], summary: {} };
   }
-  if (state.commercial && state.commercial.scenes && state.commercial.scenes.length) {
-    if (!state.commercial.matches || Object.keys(state.commercial.matches).length === 0) {
-      api(`/api/videos/${vid}/commercial/matches`).then((res) => {
-        if (res && res.matches) {
-          state.commercial.matches = res.matches;
-          if (state.commMode === "matching") renderProductMatching();
-          // Update any open detail drawer
-          document.querySelectorAll(".cdetail").forEach((cd) => {
-            const card = cd.previousElementSibling;
-            if (card && card._candData) attachMatchesToDetail(cd, card._candData);
-          });
-        }
-      }).catch((e) => console.log("Matches fetch error:", e));
-    }
-  }
+  state.matchRes = null;
+  if (state.commercial && state.commercial.scenes && state.commercial.scenes.length) loadMatches(vid);
   if (devOn()) {
     try {
       const p = (await api("/api/commercial/report")).displayed;
@@ -319,39 +306,67 @@ async function runCommercial() {
 }
 $("#commRun").addEventListener("click", runCommercial);
 
-function renderProductCard(m) {
-  const sim = m.similarity || 0;
-  const simPct = Math.round(sim * 100);
-  const simClass = sim >= 0.50 ? "high" : sim >= 0.38 ? "mid" : "low";
-  const imgUrl = `/api/catalogue/image?rel=${encodeURIComponent(m.best_image_rel)}&brand=${encodeURIComponent(m.brand || 'in_your_shoe')}&size=320`;
+// ---- product matching (phase 2B): candidates come from /commercial/matches
+const matchOf = (x) => ((state.matchRes && state.matchRes.matches) || {})[x.key];
+const TYPE_NAME = (t) => (t || "").replace(/_/g, " ");
+async function loadMatches(vid) {
+  state.matchRes = { status: "loading", matches: {} };
+  if (state.commMode === "matching") renderProductMatching();
+  try { state.matchRes = await api(`/api/videos/${vid}/commercial/matches`); }
+  catch (e) { state.matchRes = { status: "error", message: e.message, matches: {} }; }
+  if (vid !== state.vid) return;
+  if (state.commMode === "matching") renderProductMatching();
+  document.querySelectorAll(".cdetail").forEach((cd) => {
+    const card = cd.previousElementSibling;
+    if (card && card._candData) attachMatchesToDetail(cd, card._candData);
+  });
+}
 
-  return el("div", { class: "pcard" },
+function renderProductCard(m) {
+  const imgUrl = `/api/catalogue/image?rel=${encodeURIComponent(m.best_image_rel)}&brand=${encodeURIComponent(m.brand_slug || "")}&size=320`;
+  const colour = { same: "same colour", near: "similar colour", different: "different colour" }[m.color_relation];
+  return el("div", { class: "pcard" + (m.match_tier === "broad" ? " broad" : "") },
     el("div", { class: "pimg-wrap", style: `background-image:url('${imgUrl}')` },
-      el("span", { class: `sim-badge ${simClass}` }, `${simPct}% match`)
-    ),
+      el("span", { class: "sim-badge", title: "Cosine similarity between the detected crop and this product's closest image. Visual similarity, not a probability that this is the product." },
+        `similarity ${m.similarity.toFixed(2)}`),
+      m.match_tier === "broad" ? el("span", { class: "tier-badge", title: "Not enough products of the exact type: closest product from a broader compatible category" }, "broader category") : null),
     el("div", { class: "pbody" },
-      el("span", { class: "pbrand" }, m.brand || "IN YOUR SHOE"),
+      el("span", { class: "pbrand" }, m.brand || ""),
       el("span", { class: "pname", title: m.name }, m.name),
-      el("span", { class: "pprice" }, m.price != null ? `${Math.round(m.price).toLocaleString()} ${m.currency || 'EGP'}` : "Price unavailable"),
+      el("span", { class: "pprice" }, m.price != null ? `${Math.round(m.price).toLocaleString()} ${m.currency || ""}` : "Price unavailable"),
       el("div", { class: "pfooter" },
-        el("span", { class: "ptype" }, m.product_type || m.category || ""),
-        m.url ? el("a", { class: "plink", href: m.url, target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "View Product ↗") : null
-      )
-    )
-  );
+        el("span", { class: "ptype" }, [TYPE_NAME(m.normalized_type), colour].filter(Boolean).join(" · ")),
+        /^https?:\/\//.test(m.url || "") ? el("a", { class: "plink", href: m.url, target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "View ↗") : null)));
+}
+
+function matchStatusNotice() {
+  const r = state.matchRes;
+  if (!r || r.status === "loading") return el("p", { class: "notice" }, "Finding catalogue candidates… (the first time loads the image model)");
+  if (r.status === "ready") return null;
+  const title = { missing_dataset: "No product catalogue found on this computer", not_built: "Catalogue embeddings not generated yet",
+    incompatible: "Catalogue embeddings need to be regenerated", error: "Product matching failed", unavailable: "Product matching unavailable",
+    not_computed: "Matches not computed yet" }[r.status] || "Product matching unavailable";
+  return el("div", { class: "notice warn" }, el("strong", {}, title), el("br"), r.message || "",
+    el("div", { class: "row", style: "margin-top:8px" }, el("button", { class: "btn small", type: "button",
+      onclick: () => { state.matchRes = null; api(`/api/videos/${state.vid}/commercial/matches?reload=true`).then((res) => { state.matchRes = res; renderCommercial(); })
+        .catch((e) => { state.matchRes = { status: "error", message: e.message, matches: {} }; renderCommercial(); }); } }, "Check again")));
 }
 
 function attachMatchesToDetail(det, x) {
   det.querySelectorAll(".cdetail-matches").forEach((n) => n.remove());
-  const mList = (state.commercial && state.commercial.matches && state.commercial.matches[x.key]) || [];
-  if (mList.length) {
-    const sec = el("div", { class: "cdetail-matches" },
-      el("h5", {}, "Top Visual Matches · IN YOUR SHOE"),
-      el("p", { class: "notice" }, "Visual similarity candidates based on OpenCLIP embeddings. Not an exact match guarantee."),
-      el("div", { class: "match-candidates" }, ...mList.map(renderProductCard))
-    );
-    det.append(sec);
-  }
+  const m = matchOf(x);
+  if (!m) return;
+  det.append(el("div", { class: "cdetail-matches" },
+    el("h5", {}, "Closest catalogue products"),
+    el("p", { class: "muted small" }, lookingFor(m)),
+    m.candidates.length ? el("div", { class: "match-candidates" }, ...m.candidates.map(renderProductCard))
+      : el("p", { class: "muted small" }, m.note || "No compatible catalogue products.")));
+}
+function lookingFor(m) {
+  const q = m.query || {};
+  return `Compared only with: ${(q.strict_types || []).map(TYPE_NAME).join(", ") || "—"}`
+    + (q.color ? ` · detected colour ${q.color}` : " · colour not clear")
+    + (m.fallback ? ` · ${m.note}` : "");
 }
 
 function renderProductMatching() {
@@ -364,15 +379,19 @@ function renderProductMatching() {
   const view = $("#commMatchesView");
   view.replaceChildren();
 
-  const banner = el("div", { class: "match-banner" },
+  const r = state.matchRes || {};
+  const brands = (r.brands || []).filter((b) => b.status === "ready").map((b) => b.brand.replace(/_/g, " ").toUpperCase());
+  view.append(el("div", { class: "match-banner" },
     el("span", { class: "info-icon" }, "🛍️"),
     el("div", {},
-      el("strong", {}, "Product Catalogue Matching (Phase 2B)"),
-      el("br"),
-      "Visual similarity retrieval powered by OpenCLIP embeddings against the IN YOUR SHOE catalogue (1,183 products · 5,462 images). Each detected object is matched using image embeddings and cosine similarity on its cropped region. Retrieved items are candidate recommendations, not guaranteed exact matches."
-    )
-  );
-  view.append(banner);
+      el("strong", {}, "Catalogue candidates"), el("br"),
+      r.status === "ready"
+        ? `${brands.join(", ") || "Catalogue"}: ${(r.products || 0).toLocaleString()} products · ${(r.images || 0).toLocaleString()} images. `
+        : "",
+      "Each object is compared only with products of a compatible type (a jacket with jackets, not with T-shirts), then ranked by visual similarity; colour can move a product up or down but never removes it. Similarity is not a probability that the product is the one on screen.")));
+  const notice = matchStatusNotice();
+  if (notice) view.append(notice);
+  (r.warnings || []).slice(0, 3).forEach((w) => view.append(el("p", { class: "muted small" }, w)));
 
   const sceneSections = c.scenes.map((sc, i) => {
     const all = sc.candidates.filter((x) => x.displayed);
@@ -381,7 +400,8 @@ function renderProductMatching() {
 
     const rows = cands.map((x) => {
       const b = x.best;
-      const mList = (c.matches && c.matches[x.key]) || [];
+      const m = matchOf(x);
+      const mList = m ? m.candidates : [];
       const cropUrl = frameUrl(b, `?box=${b.box.join(",")}&size=360`);
 
       const sourceCol = el("div", { class: "match-source" },
@@ -392,6 +412,7 @@ function renderProductMatching() {
           el("span", {}, `Confidence: ${pct(x.detection_confidence)}`),
           el("span", {}, `Screen time: ${fmt(x.first_seen)} → ${fmt(x.last_seen)} (${fmtDur(x.screen_time)})`)
         ),
+        m ? el("p", { class: "muted small" }, lookingFor(m)) : null,
         el("button", { class: "seek-btn", type: "button", onclick: () => seek(x.first_seen) }, "▶ Jump to Scene")
       );
 
@@ -399,7 +420,7 @@ function renderProductMatching() {
         ...(mList.length
           ? mList.map(renderProductCard)
           : [el("p", { class: "muted small", style: "grid-column: 1 / -1; padding: 24px 0;" },
-              "No catalogue matches found for this object.")])
+              !m ? (state.matchRes && state.matchRes.status === "ready" ? "Not matched." : "") : (m.note || "No compatible catalogue products."))])
       );
 
       return el("div", { class: "match-row" }, sourceCol, candCol);
@@ -493,7 +514,7 @@ function renderCommercial() {
           ["Model", `${m.name || "?"} (${m.license || "?"})`], ["Version / device", `${m.version || "cached results"} · ${m.device || "not loaded"}`],
           ["Taxonomy version · detector key", `${c.taxonomy_version} · ${m.detector_key}`],
           ["Unique shots analysed", `${s.frames_analysed} of ${s.frames_needed} (inference avoided for ${s.inference_avoided_by_unique_shots} repeated shots)`],
-          ["Catalogue matches", Object.keys(c.matches || {}).length ? `${Object.keys(c.matches).length} candidates matched against IN YOUR SHOE` : "computing…"],
+          ["Catalogue matching", state.matchRes ? `${state.matchRes.status} · ${state.matchRes.count || 0} objects · ${(state.matchRes.usable || []).join(", ")}` : "…"],
         ].map(([k, v]) => el("tr", {}, el("td", {}, k), el("td", {}, String(v))))));
     }
     return;

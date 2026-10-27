@@ -91,3 +91,21 @@ min_relevance = 0.45             # commercial relevance needed to be shown
 describe_colors = true           # "White sneakers" when one colour clearly dominates
 context_min_confidence = 0.60    # scene venue is reported only when this sure ...
 context_min_margin = 0.15        # ... and this far ahead of the runner-up
+
+[catalogue]
+# Phase 2B: product catalogues for visual matching. The dataset (catalogue.jsonl, images, embeddings) is NOT in Git.
+# Each folder below holds one sub-folder per brand, e.g. scraper/output/in_your_shoe/. Relative paths start at the
+# project root. Set SCENESEEN_CATALOGUE_DIR to use another location without editing this file (docs/MATCHING.md).
+dirs = ["scraper/output", "data/catalogues"]
+model = "ViT-B-32"               # same OpenCLIP model as Phase 1; changing it requires rebuilding the embeddings
+pretrained = "laion2b_s34b_b79k"
+device = "auto"
+batch_size = 64
+top_k = 3                        # candidates shown per detected object
+crop_pad = 0.08                  # padding around the detected box before embedding
+# Colour only re-orders candidates of a compatible product type; it never removes one.
+# The values are small on purpose (cosine similarities of good candidates differ by a few hundredths).
+color_same = 0.04
+color_near = 0.02
+color_different = -0.04
+color_different_multicolor = -0.01
