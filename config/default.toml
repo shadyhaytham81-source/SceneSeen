@@ -102,7 +102,13 @@ pretrained = "laion2b_s34b_b79k"
 device = "auto"
 batch_size = 64
 top_k = 3                        # candidates shown per detected object
-crop_pad = 0.08                  # padding around the detected box before embedding
+crop_pad = 0.08                  # padding around the detected box before embedding (video crops AND catalogue crops)
+# "garment": embed the garment being sold, located by OWLv2 with the product type's prompts (docs/MATCHING.md);
+# "full": embed whole catalogue photos. Each mode has its own embedding files; switching never mixes them.
+image_mode = "garment"
+crop_min_score = 0.15            # catalogue garment box needs this OWLv2 score, otherwise the full photo is kept
+letterbox = false                # garment mode: pad crops to a square before CLIP (measured worse than CLIP's centre crop)
+aggregate = "top2"               # product score = mean similarity of its two closest photos (max = closest only)
 # Colour only re-orders candidates of a compatible product type; it never removes one.
 # The values are small on purpose (cosine similarities of good candidates differ by a few hundredths).
 color_same = 0.04

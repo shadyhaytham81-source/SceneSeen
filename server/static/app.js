@@ -388,7 +388,11 @@ function renderProductMatching() {
       r.status === "ready"
         ? `${brands.join(", ") || "Catalogue"}: ${(r.products || 0).toLocaleString()} products · ${(r.images || 0).toLocaleString()} images. `
         : "",
-      "Each object is compared only with products of a compatible type (a jacket with jackets, not with T-shirts), then ranked by visual similarity; colour can move a product up or down but never removes it. Similarity is not a probability that the product is the one on screen.")));
+      "Each object is compared only with products of a compatible type (a jacket with jackets, not with T-shirts), then ranked by visual similarity",
+      (r.brands || []).some((b) => b.status === "ready" && b.image_mode === "garment")
+        ? " to the garment being sold, cut out of each catalogue photo"
+        : " to whole catalogue photos",
+      "; colour can move a product up or down (less when the detected colour is unclear) but never removes it. Similarity ranks candidates; it is not a probability that the product is the one on screen.")));
   const notice = matchStatusNotice();
   if (notice) view.append(notice);
   (r.warnings || []).slice(0, 3).forEach((w) => view.append(el("p", { class: "muted small" }, w)));

@@ -331,7 +331,7 @@ def _catalogue(reload: bool = False):
     from sceneseen.config import catalogue_dirs
 
     if _CATALOGUE is None or reload:
-        _CATALOGUE = MultiBrandCatalogue(catalogue_dirs(CFG.catalogue))
+        _CATALOGUE = MultiBrandCatalogue(catalogue_dirs(CFG.catalogue), CFG.catalogue.image_mode)
         _CATALOGUE.discover_and_load()
     return _CATALOGUE
 
@@ -368,7 +368,9 @@ def commercial_matches(vid: str, compute: bool = True, reload: bool = False):
 @app.get("/api/catalogue/status")
 def catalogue_status(reload: bool = True):
     """Which catalogues were found, whether their embeddings are usable, and what to do if not."""
-    return _catalogue(reload).status(CFG.catalogue.model, CFG.catalogue.pretrained)
+    from sceneseen.commercial.matching import crop_settings
+
+    return _catalogue(reload).status(CFG.catalogue.model, CFG.catalogue.pretrained, crop=crop_settings(CFG.catalogue))
 
 
 @app.get("/api/catalogue/image")

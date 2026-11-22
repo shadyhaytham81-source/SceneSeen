@@ -1,5 +1,5 @@
 {
-  "version": "2026-10-27.1",
+  "version": "2026-10-29.2",
   "notes": [
     "Maps catalogue product names / product types and detector labels to standard product types, umbrella categories and colours.",
     "Edit this file to add brands: add keywords to an existing product type, or add a new type (and put it in type_order).",
@@ -7,7 +7,8 @@
     "type_order matters: the first type whose keyword appears wins, so specific types (overshirt, sweatshirt, swim shorts) come before generic ones (shirt, shorts).",
     "Anything not matched stays 'unknown' on purpose. Unknown products are never offered as matches; run `python -m sceneseen match-catalogue --taxonomy-report` to list them.",
     "Product colours are read only from clear colour words; food/motif words (cherry, coffee, mint…) are deliberately not colours because printed designs use them.",
-    "'short' alone is not a keyword: 'Short Sleeve Shirt' is a shirt and 'Short Socks' are socks."
+    "'short' alone is not a keyword: 'Short Sleeve Shirt' is a shirt and 'Short Socks' are socks.",
+    "crop: OWLv2 prompts that find the garment being sold in a catalogue photo (garment_crop.py). The best box of the prompts is used; 'parts' (sets, pyjamas) unions the best box of each part, the first part required. Changing them re-runs garment detection on the next --build-index. 'min_area' ignores boxes smaller than that fraction of the photo (a collar is not the polo); 'outer' handles layering: a higher-scoring box of those prompts that contains the chosen box is the product (an open shirt over a tee is found as 'shirt jacket')."
   ],
   "umbrellas": {
     "tops": "T-shirts, tops, tanks, polos, shirts",
@@ -33,7 +34,14 @@
         "polo",
         "polo t shirt",
         "polo shirt"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "polo shirt",
+          "shirt"
+        ],
+        "min_area": 0.02
+      }
     },
     "overshirt": {
       "umbrella": "outerwear",
@@ -42,7 +50,15 @@
         "overshirt jacket",
         "shacket",
         "shirt jacket"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "shirt jacket",
+          "jacket",
+          "shirt"
+        ],
+        "min_area": 0.02
+      }
     },
     "sweatshirt": {
       "umbrella": "upper_layers",
@@ -52,7 +68,14 @@
         "crew neck",
         "pullover",
         "jumper"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "sweatshirt",
+          "sweater"
+        ],
+        "min_area": 0.02
+      }
     },
     "hoodie": {
       "umbrella": "upper_layers",
@@ -60,20 +83,40 @@
         "hoodie",
         "hoody",
         "hooded"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "hoodie",
+          "sweatshirt"
+        ],
+        "min_area": 0.02
+      }
     },
     "cardigan": {
       "umbrella": "upper_layers",
       "keywords": [
         "cardigan"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "cardigan",
+          "sweater"
+        ],
+        "min_area": 0.02
+      }
     },
     "sweater": {
       "umbrella": "upper_layers",
       "keywords": [
         "sweater",
         "knitwear"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "sweater"
+        ],
+        "min_area": 0.02
+      }
     },
     "vest": {
       "umbrella": "upper_layers",
@@ -81,14 +124,27 @@
         "vest",
         "waistcoat",
         "gilet"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "vest"
+        ],
+        "min_area": 0.02
+      }
     },
     "blazer": {
       "umbrella": "outerwear",
       "keywords": [
         "blazer",
         "suit jacket"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "blazer",
+          "jacket"
+        ],
+        "min_area": 0.02
+      }
     },
     "coat": {
       "umbrella": "outerwear",
@@ -97,7 +153,14 @@
         "trench",
         "parka",
         "puffer"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "coat",
+          "jacket"
+        ],
+        "min_area": 0.02
+      }
     },
     "jacket": {
       "umbrella": "outerwear",
@@ -109,7 +172,13 @@
         "curduroy jacket",
         "fleece jacket",
         "leather jacket"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "jacket"
+        ],
+        "min_area": 0.02
+      }
     },
     "pajama_set": {
       "umbrella": "sleepwear",
@@ -121,7 +190,23 @@
         "pajama",
         "pajamas",
         "pjs"
-      ]
+      ],
+      "crop": {
+        "parts": [
+          [
+            "pajama top",
+            "shirt",
+            "t-shirt",
+            "top"
+          ],
+          [
+            "pajama pants",
+            "pants",
+            "shorts"
+          ]
+        ],
+        "min_area": 0.02
+      }
     },
     "pajama_shorts": {
       "umbrella": "sleepwear",
@@ -132,7 +217,13 @@
         "pajama shorts",
         "kids boxer shorts",
         "boxer shorts"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "shorts"
+        ],
+        "min_area": 0.02
+      }
     },
     "set": {
       "umbrella": "sets",
@@ -141,7 +232,25 @@
         "co ord",
         "coord",
         "two piece"
-      ]
+      ],
+      "crop": {
+        "parts": [
+          [
+            "shirt",
+            "t-shirt",
+            "top",
+            "jacket",
+            "hoodie",
+            "sweatshirt"
+          ],
+          [
+            "pants",
+            "shorts",
+            "skirt"
+          ]
+        ],
+        "min_area": 0.02
+      }
     },
     "swim_shorts": {
       "umbrella": "shorts",
@@ -151,7 +260,14 @@
         "swimshorts",
         "board shorts",
         "swim trunks"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "swim shorts",
+          "shorts"
+        ],
+        "min_area": 0.02
+      }
     },
     "sweat_shorts": {
       "umbrella": "shorts",
@@ -160,7 +276,13 @@
         "sworts",
         "sweat shorts",
         "jogger shorts"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "shorts"
+        ],
+        "min_area": 0.02
+      }
     },
     "denim_shorts": {
       "umbrella": "shorts",
@@ -168,7 +290,14 @@
         "jort",
         "jorts",
         "denim shorts"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "denim shorts",
+          "shorts"
+        ],
+        "min_area": 0.02
+      }
     },
     "shorts": {
       "umbrella": "shorts",
@@ -178,7 +307,13 @@
         "bermuda shorts",
         "knit short",
         "cargo shorts"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "shorts"
+        ],
+        "min_area": 0.02
+      }
     },
     "sweatpants": {
       "umbrella": "trousers",
@@ -191,7 +326,14 @@
         "jogger",
         "track pants",
         "trackpants"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "sweatpants",
+          "pants"
+        ],
+        "min_area": 0.02
+      }
     },
     "leggings": {
       "umbrella": "trousers",
@@ -199,7 +341,14 @@
         "leggings",
         "legging",
         "flared leggings"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "leggings",
+          "pants"
+        ],
+        "min_area": 0.02
+      }
     },
     "jeans": {
       "umbrella": "trousers",
@@ -208,14 +357,27 @@
         "jean",
         "denim pants",
         "denim trousers"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "jeans",
+          "pants"
+        ],
+        "min_area": 0.02
+      }
     },
     "lounge_pants": {
       "umbrella": "trousers",
       "keywords": [
         "boxer pants",
         "lounge pants"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "pants"
+        ],
+        "min_area": 0.02
+      }
     },
     "trousers": {
       "umbrella": "trousers",
@@ -226,21 +388,40 @@
         "chinos",
         "cargo pants",
         "slacks"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "trousers",
+          "pants"
+        ],
+        "min_area": 0.02
+      }
     },
     "skirt": {
       "umbrella": "skirts_dresses",
       "keywords": [
         "skirt",
         "skort"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "skirt"
+        ],
+        "min_area": 0.02
+      }
     },
     "dress": {
       "umbrella": "skirts_dresses",
       "keywords": [
         "dress",
         "gown"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "dress"
+        ],
+        "min_area": 0.02
+      }
     },
     "onesie": {
       "umbrella": "one_piece",
@@ -250,13 +431,27 @@
         "jumpsuit",
         "romper",
         "bodysuit"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "jumpsuit",
+          "onesie"
+        ],
+        "min_area": 0.02
+      }
     },
     "jersey": {
       "umbrella": "tops",
       "keywords": [
         "jersey"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "jersey",
+          "t-shirt"
+        ],
+        "min_area": 0.02
+      }
     },
     "tank_top": {
       "umbrella": "tops",
@@ -267,7 +462,14 @@
         "sleeveless top",
         "camisole",
         "cami"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "tank top",
+          "top"
+        ],
+        "min_area": 0.02
+      }
     },
     "long_sleeve_tee": {
       "umbrella": "tops",
@@ -275,13 +477,27 @@
         "long sleeves",
         "long sleeve",
         "longsleeve"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "long sleeve shirt",
+          "t-shirt"
+        ],
+        "min_area": 0.02
+      }
     },
     "knit_top": {
       "umbrella": "tops",
       "keywords": [
         "knit top"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "knit top",
+          "top"
+        ],
+        "min_area": 0.02
+      }
     },
     "shirt": {
       "umbrella": "tops",
@@ -291,7 +507,16 @@
         "button up",
         "button down",
         "blouse"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "shirt"
+        ],
+        "outer": [
+          "shirt jacket"
+        ],
+        "min_area": 0.02
+      }
     },
     "tshirt": {
       "umbrella": "tops",
@@ -301,7 +526,13 @@
         "tee",
         "tees",
         "baby tee"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "t-shirt"
+        ],
+        "min_area": 0.02
+      }
     },
     "top": {
       "umbrella": "tops",
@@ -309,7 +540,14 @@
         "top",
         "tops",
         "crop top"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "top",
+          "t-shirt"
+        ],
+        "min_area": 0.02
+      }
     },
     "cap": {
       "umbrella": "headwear",
@@ -318,33 +556,61 @@
         "baseball cap",
         "snapback",
         "trucker"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "cap"
+        ]
+      }
     },
     "bucket_hat": {
       "umbrella": "headwear",
       "keywords": [
         "bucket",
         "bucket hat"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "bucket hat",
+          "hat"
+        ]
+      }
     },
     "beanie": {
       "umbrella": "headwear",
       "keywords": [
         "beanie"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "beanie",
+          "hat"
+        ]
+      }
     },
     "hat": {
       "umbrella": "headwear",
       "keywords": [
         "hat"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "hat"
+        ]
+      }
     },
     "bandana": {
       "umbrella": "headwear",
       "keywords": [
         "bandana",
         "headscarf"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "bandana",
+          "headscarf"
+        ]
+      }
     },
     "socks": {
       "umbrella": "socks",
@@ -352,7 +618,12 @@
         "socks",
         "sock",
         "neck socks"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "socks"
+        ]
+      }
     },
     "sneakers": {
       "umbrella": "footwear",
@@ -360,7 +631,13 @@
         "sneakers",
         "sneaker",
         "trainers"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "sneakers",
+          "shoes"
+        ]
+      }
     },
     "shoes": {
       "umbrella": "footwear",
@@ -373,21 +650,37 @@
         "slides",
         "slippers",
         "heels"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "shoes"
+        ]
+      }
     },
     "backpack": {
       "umbrella": "bags",
       "keywords": [
         "backpack",
         "rucksack"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "backpack"
+        ]
+      }
     },
     "tote_bag": {
       "umbrella": "bags",
       "keywords": [
         "tote",
         "tote bag"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "tote bag",
+          "bag"
+        ]
+      }
     },
     "bag": {
       "umbrella": "bags",
@@ -397,7 +690,13 @@
         "crossbody",
         "purse",
         "pouch"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "bag",
+          "handbag"
+        ]
+      }
     },
     "jewelry": {
       "umbrella": "accessories",
@@ -409,7 +708,15 @@
         "ring",
         "jewelry",
         "jewellery"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "necklace",
+          "bracelet",
+          "earrings",
+          "jewelry"
+        ]
+      }
     },
     "eyewear": {
       "umbrella": "accessories",
@@ -417,14 +724,25 @@
         "sunglasses",
         "eyeglasses",
         "glasses"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "sunglasses",
+          "glasses"
+        ]
+      }
     },
     "watch": {
       "umbrella": "accessories",
       "keywords": [
         "watch",
         "wristwatch"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "watch"
+        ]
+      }
     },
     "towel": {
       "umbrella": "home",
@@ -432,14 +750,24 @@
         "towel",
         "towels",
         "beach towel"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "towel"
+        ]
+      }
     },
     "candle": {
       "umbrella": "home",
       "keywords": [
         "candle",
         "candles"
-      ]
+      ],
+      "crop": {
+        "prompts": [
+          "candle"
+        ]
+      }
     }
   },
   "type_order": [

@@ -335,12 +335,13 @@ def cmd_match_catalogue(args, cfg) -> int:
 
     import numpy as np
 
-    from .commercial.matching import ClipEncoder, MultiBrandCatalogue
+    from .commercial.matching import CatalogueIndex, ClipEncoder, MultiBrandCatalogue, crop_settings
     from .commercial.product_taxonomy import load_taxonomy
     from .config import catalogue_dirs
 
     cc = cfg.catalogue
-    mb = MultiBrandCatalogue(catalogue_dirs(cc))
+    modes = ["garment", "full"] if args.mode == "all" else [args.mode or cc.image_mode]
+    mb = MultiBrandCatalogue(catalogue_dirs(cc), cc.image_mode)
     mb.discover_and_load()
     if not mb.indices:
         print(mb.status(cc.model, cc.pretrained)["message"])
@@ -354,12 +355,24 @@ def cmd_match_catalogue(args, cfg) -> int:
     if args.build_index:
         enc = ClipEncoder(cc.model, cc.pretrained, cc.device)
         for b in brands:
-            idx = mb.indices[b]
-            print(f"Building/updating embeddings for '{b}' in {idx.brand_dir} with {cc.model}/{cc.pretrained} …")
-            n = idx.build_or_update(batch_size=cc.batch_size, encoder=enc, force=args.force,
-                                    progress=lambda d, t: print(f"  {d}/{t} images", end="\r", flush=True))
-            print(f"\n  {n} image(s) embedded now · {len(idx.items)} indexed for "
-                  f"{len({it.product_id for it in idx.items})} products")
+            for mode in modes:
+                idx = CatalogueIndex(b, mb.indices[b].brand_dir, mode)
+                print(f"Building/updating {mode} embeddings for '{b}' in {idx.brand_dir} with {cc.model}/{cc.pretrained} …")
+                if mode == "garment":
+                    print("  garment detection (OWLv2) runs once per new or changed image; the first run takes "
+                          "about 1 s per image")
+                n = idx.build_or_update(batch_size=cc.batch_size, encoder=enc, force=args.force, cfg=cc,
+                                        detect_progress=lambda d, t: print(f"  garment detection {d}/{t} images",
+                                                                           end="\r", flush=True),
+                                        progress=lambda d, t: print(f"  embedding {d}/{t} images", end="\r", flush=True))
+                print(f"\n  {n} image(s) embedded now · {len(idx.items)} indexed for "
+                      f"{len({it.product_id for it in idx.items})} products")
+                if mode == "garment":
+                    m = idx.meta.get("crop", {}).get("methods", {})
+                    print(f"  crops: {m.get('detector', 0)} garment boxes, {m.get('union', 0)} unions (sets), "
+                          f"{m.get('full', 0)} kept the full photo (no confident box or unknown product type)")
+        mb = MultiBrandCatalogue(catalogue_dirs(cc), cc.image_mode)
+        mb.discover_and_load()
     if args.taxonomy_report:
         tax = load_taxonomy()
         for b in brands:
@@ -378,11 +391,25 @@ def cmd_match_catalogue(args, cfg) -> int:
                 print("  product types left UNKNOWN (never offered as matches; add keywords to product_taxonomy.json):")
                 for t, n in unk.most_common():
                     print(f"    {t!r}: {n}")
+    if args.inspect_crops:
+        from .commercial.garment_crop import crop_sheet
+
+        for b in brands:
+            idx = CatalogueIndex(b, mb.indices[b].brand_dir, "garment")
+            if not idx.load():
+                print(f"{b}: garment embeddings not built yet ({idx.load_error}); run --build-index first")
+                continue
+            out = crop_sheet(idx, args.inspect_crops)
+            print(f"{b}: contact sheet of {args.inspect_crops} garment crops → {out}  (red = garment box, "
+                  f"blue = full photo kept)")
     if args.verify:
+        from .commercial.garment_crop import letterbox
+
         enc = ClipEncoder(cc.model, cc.pretrained, cc.device)
         bad = 0
         for b in brands:
-            idx = mb.indices[b]
+            idx = CatalogueIndex(b, mb.indices[b].brand_dir, modes[0])
+            idx.load()
             if not idx.items:
                 print(f"{b}: no embeddings to verify")
                 continue
@@ -396,12 +423,14 @@ def cmd_match_catalogue(args, cfg) -> int:
                     print(f"  MISMATCH {b} row {r}: product {it.product_id} is not in catalogue.jsonl")
                     bad += 1
                     continue
+                src = it.crop_path if idx.mode == "garment" else it.image_path
                 try:
-                    with Image.open(idx.brand_dir / it.image_path) as im:
-                        ims.append(im.convert("RGB"))
+                    with Image.open(idx.brand_dir / src) as im:
+                        im = im.convert("RGB")
+                    ims.append(letterbox(im) if idx.letterbox else im)
                     keep.append(r)
                 except Exception as e:
-                    print(f"  MISSING {b} row {r}: {it.image_path} ({e})")
+                    print(f"  MISSING {b} row {r}: {src} ({e})")
                     bad += 1
             if ims:
                 fresh = enc.embed(ims)
@@ -409,16 +438,17 @@ def cmd_match_catalogue(args, cfg) -> int:
                 for r, s in zip(keep, sims):
                     if s < 0.99:
                         bad += 1
-                        print(f"  MISMATCH {b} row {r}: stored vector does not belong to {idx.items[r].image_path} (cos {s:.3f})")
+                        src = idx.items[r].crop_path if idx.mode == "garment" else idx.items[r].image_path
+                        print(f"  MISMATCH {b} row {r}: stored vector does not belong to {src} (cos {s:.3f})")
                 print(f"{b}: re-embedded {len(keep)} sampled images; min cosine with stored row {sims.min():.4f}")
         print("verify: OK" if not bad else f"verify: {bad} problem(s) — rebuild with --build-index --force")
         if bad:
             return 1
-    st = mb.status(cc.model, cc.pretrained)
-    print(f"\nStatus: {st['status']}" + (f" — {st['message']}" if st["message"] else ""))
+    st = mb.status(cc.model, cc.pretrained, crop=crop_settings(cc))
+    print(f"\nStatus: {st['status']} (image mode: {cc.image_mode})" + (f" — {st['message']}" if st["message"] else ""))
     for b in st["brands"]:
         stale = b.get("stale") or {}
-        print(f"  {b['brand']:<20} {b['status']:<13} {b['products']} products · {b['images']} images · {b['dir']}"
+        print(f"  {b['brand']:<20} {b['status']:<13} {b['image_mode']:<8} {b['products']} products · {b['images']} images · {b['dir']}"
               + (f" · on disk {stale.get('on_disk')}, new {stale.get('new')}, changed {stale.get('changed')}, "
                  f"removed {stale.get('removed')}" if stale else ""))
     for w in st.get("warnings", []):
@@ -453,6 +483,10 @@ def main(argv=None) -> int:
     mc.add_argument("--verify", type=int, nargs="?", const=50, default=0, metavar="N",
                     help="re-embed N sampled images and check they match their stored rows and product records")
     mc.add_argument("--taxonomy-report", action="store_true", help="how products are categorised; lists unknown types")
+    mc.add_argument("--mode", choices=["garment", "full", "all"], default=None,
+                    help="which embeddings to build / verify (default: [catalogue] image_mode)")
+    mc.add_argument("--inspect-crops", type=int, nargs="?", const=48, default=0, metavar="N",
+                    help="write a contact sheet of N sampled garment crops (box drawn on the catalogue photo)")
     cr = sub.add_parser("commercial-report", help="precision of reviewed commercial detections")
     cr.add_argument("--min-confidence", type=float, default=None,
                     help="re-evaluate existing reviews at this display threshold")

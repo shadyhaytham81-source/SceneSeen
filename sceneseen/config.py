@@ -106,6 +106,13 @@ class CatalogueConfig:
     batch_size: int = 64
     top_k: int = 3
     crop_pad: float = 0.08               # padding around the detected box (fraction of box size)
+    # What catalogue images are embedded: "garment" = the garment being sold, found by OWLv2 with the
+    # product type's prompts (garment_crop.py); "full" = the whole photo (the original index).
+    image_mode: str = "garment"
+    crop_min_score: float = 0.15         # OWLv2 score a catalogue garment box needs; below it the full image is kept
+    letterbox: bool = False              # garment mode: pad crops to a square instead of CLIP's centre crop
+                                         # (measured worse: top-1 79 % → 66 %, docs/MATCHING.md)
+    aggregate: str = "top2"              # product score from its images: top2 (mean of the best two) | max
     color_same: float = 0.04             # ranking adjustment added to cosine similarity
     color_near: float = 0.02
     color_different: float = -0.04
