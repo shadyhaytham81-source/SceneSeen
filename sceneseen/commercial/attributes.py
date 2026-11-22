@@ -9,6 +9,13 @@ import numpy as np
 
 
 def dominant_color(rgb: np.ndarray, box: list[float], min_fraction: float = 0.55) -> str | None:
+    name, share = dominant_color_share(rgb, box)
+    return name if name is not None and share >= min_fraction else None
+
+
+def dominant_color_share(rgb: np.ndarray, box: list[float]) -> tuple[str | None, float]:
+    """Most common colour name in the centre of the box and the fraction of pixels it covers
+    (how clear the colour is: 0.9 = one solid colour, 0.4 = mixed or printed)."""
     import cv2
 
     h, w = rgb.shape[:2]
@@ -18,7 +25,7 @@ def dominant_color(rgb: np.ndarray, box: list[float], min_fraction: float = 0.55
     xa, xb = int((x1 + mx) * w), int((x2 - mx) * w)
     ya, yb = int((y1 + my) * h), int((y2 - my) * h)
     if xb - xa < 4 or yb - ya < 4:
-        return None
+        return None, 0.0
     hsv = cv2.cvtColor(np.ascontiguousarray(rgb[ya:yb, xa:xb]), cv2.COLOR_RGB2HSV).reshape(-1, 3).astype(np.float32)
     hue, sat, val = hsv[:, 0] * 2.0, hsv[:, 1] / 255.0, hsv[:, 2] / 255.0
     names = np.full(len(hue), "", dtype=object)
@@ -35,4 +42,4 @@ def dominant_color(rgb: np.ndarray, box: list[float], min_fraction: float = 0.55
     names[warm & (sat < 0.35) & (val >= 0.55)] = "beige"
     vals, counts = np.unique(names, return_counts=True)
     k = int(np.argmax(counts))
-    return str(vals[k]) if counts[k] / len(names) >= min_fraction else None
+    return str(vals[k]), float(counts[k] / len(names))

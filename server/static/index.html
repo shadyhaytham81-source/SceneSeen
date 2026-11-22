@@ -97,7 +97,7 @@
 
       <div class="cards" id="cards"></div>
 
-      <!-- COMMERCIAL OBJECTS (Phase 2A) -->
+      <!-- COMMERCIAL OBJECTS & PRODUCT MATCHING (Phase 2A & 2B) -->
       <section class="comm" id="commPanel" hidden>
         <div class="uniq-head">
           <div>
@@ -105,6 +105,10 @@
             <p class="muted small" id="commSummary"></p>
           </div>
           <div class="row">
+            <div class="seg-toggle" role="tablist" aria-label="Commercial view" id="commViewToggle" hidden>
+              <button type="button" class="on" id="commModeObjects" role="tab">Detected Objects</button>
+              <button type="button" id="commModeMatching" role="tab">Product Matching</button>
+            </div>
             <button class="btn primary small" id="commRun" type="button" hidden>Run Commercial Analysis</button>
             <span class="muted small" id="commState"></span>
           </div>
@@ -112,6 +116,7 @@
         <div class="bar" id="commBarWrap" hidden><div id="commBar"></div></div>
         <div class="chips" id="commFilters" role="tablist" aria-label="Category filter"></div>
         <div id="commScenes"></div>
+        <div id="commMatchesView" hidden></div>
         <div class="panel dev-only" id="commDev" hidden></div>
       </section>
 

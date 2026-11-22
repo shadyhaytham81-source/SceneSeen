@@ -158,6 +158,18 @@ scene's context (e.g. home interior, indoor). Click an object to see the frame a
 category. No brands or products are identified. Results are cached, so reopening is instant. If the model is
 unavailable the page says so and everything else keeps working. Details: [docs/COMMERCIAL.md](docs/COMMERCIAL.md).
 
+**Product matching (Phase 2B):** in Commercial Objects, open the **Product Matching** tab to see each detected
+object next to its 3 closest catalogue products (IN YOUR SHOE). Products are first filtered to compatible types (a
+jacket is only compared with jackets), then ranked by visual similarity to the garment being sold, which OWLv2
+cuts out of each catalogue photo. The catalogue dataset is not in Git; see
+[docs/MATCHING.md](docs/MATCHING.md) for where to put it and how to generate the embeddings once:
+
+```bash
+export SCENESEEN_CATALOGUE_DIR=/path/to/catalogues     # only if the dataset is not in scraper/output/ or data/catalogues/
+python -m sceneseen match-catalogue --build-index      # garment crops + embeddings of new images; resumable; ~1 s/photo the first time (plug in)
+python -m sceneseen match-catalogue                    # status: ready / missing_dataset / not_built / incompatible
+```
+
 **Command line**
 
 ```bash

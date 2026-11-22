@@ -262,13 +262,18 @@ $("#player").addEventListener("error", () => {
   $("#nowPlaying").textContent = "This browser cannot play this video format.";
 });
 
-// ------------------------------------------------------------------ commercial objects (phase 2A)
+// ------------------------------------------------------------------ commercial objects (phase 2A & 2B)
 const pct = (v) => `${Math.round(v * 100)}%`;
 async function loadCommercial(vid) {
   const panel = $("#commPanel");
   panel.hidden = false;
-  try { state.commercial = await api(`/api/videos/${vid}/commercial`); }
-  catch (e) { state.commercial = { status: "unavailable", reason: e.message, scenes: [], summary: {} }; }
+  try {
+    state.commercial = await api(`/api/videos/${vid}/commercial`);
+  } catch (e) {
+    state.commercial = { status: "unavailable", reason: e.message, scenes: [], summary: {} };
+  }
+  state.matchRes = null;
+  if (state.commercial && state.commercial.scenes && state.commercial.scenes.length) loadMatches(vid);
   if (devOn()) {
     try {
       const p = (await api("/api/commercial/report")).displayed;
@@ -301,13 +306,172 @@ async function runCommercial() {
 }
 $("#commRun").addEventListener("click", runCommercial);
 
+// ---- product matching (phase 2B): candidates come from /commercial/matches
+const matchOf = (x) => ((state.matchRes && state.matchRes.matches) || {})[x.key];
+const TYPE_NAME = (t) => (t || "").replace(/_/g, " ");
+async function loadMatches(vid) {
+  state.matchRes = { status: "loading", matches: {} };
+  if (state.commMode === "matching") renderProductMatching();
+  try { state.matchRes = await api(`/api/videos/${vid}/commercial/matches`); }
+  catch (e) { state.matchRes = { status: "error", message: e.message, matches: {} }; }
+  if (vid !== state.vid) return;
+  if (state.commMode === "matching") renderProductMatching();
+  document.querySelectorAll(".cdetail").forEach((cd) => {
+    const card = cd.previousElementSibling;
+    if (card && card._candData) attachMatchesToDetail(cd, card._candData);
+  });
+}
+
+function renderProductCard(m) {
+  const imgUrl = `/api/catalogue/image?rel=${encodeURIComponent(m.best_image_rel)}&brand=${encodeURIComponent(m.brand_slug || "")}&size=320`;
+  const colour = { same: "same colour", near: "similar colour", different: "different colour" }[m.color_relation];
+  return el("div", { class: "pcard" + (m.match_tier === "broad" ? " broad" : "") },
+    el("div", { class: "pimg-wrap", style: `background-image:url('${imgUrl}')` },
+      el("span", { class: "sim-badge", title: "Cosine similarity between the detected crop and this product's closest image. Visual similarity, not a probability that this is the product." },
+        `similarity ${m.similarity.toFixed(2)}`),
+      m.match_tier === "broad" ? el("span", { class: "tier-badge", title: "Not enough products of the exact type: closest product from a broader compatible category" }, "broader category") : null),
+    el("div", { class: "pbody" },
+      el("span", { class: "pbrand" }, m.brand || ""),
+      el("span", { class: "pname", title: m.name }, m.name),
+      el("span", { class: "pprice" }, m.price != null ? `${Math.round(m.price).toLocaleString()} ${m.currency || ""}` : "Price unavailable"),
+      el("div", { class: "pfooter" },
+        el("span", { class: "ptype" }, [TYPE_NAME(m.normalized_type), colour].filter(Boolean).join(" · ")),
+        /^https?:\/\//.test(m.url || "") ? el("a", { class: "plink", href: m.url, target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "View ↗") : null)));
+}
+
+function matchStatusNotice() {
+  const r = state.matchRes;
+  if (!r || r.status === "loading") return el("p", { class: "notice" }, "Finding catalogue candidates… (the first time loads the image model)");
+  if (r.status === "ready") return null;
+  const title = { missing_dataset: "No product catalogue found on this computer", not_built: "Catalogue embeddings not generated yet",
+    incompatible: "Catalogue embeddings need to be regenerated", error: "Product matching failed", unavailable: "Product matching unavailable",
+    not_computed: "Matches not computed yet" }[r.status] || "Product matching unavailable";
+  return el("div", { class: "notice warn" }, el("strong", {}, title), el("br"), r.message || "",
+    el("div", { class: "row", style: "margin-top:8px" }, el("button", { class: "btn small", type: "button",
+      onclick: () => { state.matchRes = null; api(`/api/videos/${state.vid}/commercial/matches?reload=true`).then((res) => { state.matchRes = res; renderCommercial(); })
+        .catch((e) => { state.matchRes = { status: "error", message: e.message, matches: {} }; renderCommercial(); }); } }, "Check again")));
+}
+
+function attachMatchesToDetail(det, x) {
+  det.querySelectorAll(".cdetail-matches").forEach((n) => n.remove());
+  const m = matchOf(x);
+  if (!m) return;
+  det.append(el("div", { class: "cdetail-matches" },
+    el("h5", {}, "Closest catalogue products"),
+    el("p", { class: "muted small" }, lookingFor(m)),
+    m.candidates.length ? el("div", { class: "match-candidates" }, ...m.candidates.map(renderProductCard))
+      : el("p", { class: "muted small" }, m.note || "No compatible catalogue products.")));
+}
+function lookingFor(m) {
+  const q = m.query || {};
+  return `Compared only with: ${(q.strict_types || []).map(TYPE_NAME).join(", ") || "—"}`
+    + (q.color ? ` · detected colour ${q.color}` : " · colour not clear")
+    + (m.fallback ? ` · ${m.note}` : "");
+}
+
+function renderProductMatching() {
+  const c = state.commercial;
+  if (!c || !c.scenes) return;
+  const filter = state.commFilter || "all";
+  const seek = (t) => { const p = $("#player"); state.previewEnd = null; p.currentTime = t + 0.01; $(".player-wrap").scrollIntoView({ behavior: "smooth", block: "center" }); };
+  const frameUrl = (b, extra) => `${c.frame_base}${b.shot_id}/${Math.round(b.position * 100)}${extra || ""}`;
+
+  const view = $("#commMatchesView");
+  view.replaceChildren();
+
+  const r = state.matchRes || {};
+  const brands = (r.brands || []).filter((b) => b.status === "ready").map((b) => b.brand.replace(/_/g, " ").toUpperCase());
+  view.append(el("div", { class: "match-banner" },
+    el("span", { class: "info-icon" }, "🛍️"),
+    el("div", {},
+      el("strong", {}, "Catalogue candidates"), el("br"),
+      r.status === "ready"
+        ? `${brands.join(", ") || "Catalogue"}: ${(r.products || 0).toLocaleString()} products · ${(r.images || 0).toLocaleString()} images. `
+        : "",
+      "Each object is compared only with products of a compatible type (a jacket with jackets, not with T-shirts), then ranked by visual similarity",
+      (r.brands || []).some((b) => b.status === "ready" && b.image_mode === "garment")
+        ? " to the garment being sold, cut out of each catalogue photo"
+        : " to whole catalogue photos",
+      "; colour can move a product up or down (less when the detected colour is unclear) but never removes it. Similarity ranks candidates; it is not a probability that the product is the one on screen.")));
+  const notice = matchStatusNotice();
+  if (notice) view.append(notice);
+  (r.warnings || []).slice(0, 3).forEach((w) => view.append(el("p", { class: "muted small" }, w)));
+
+  const sceneSections = c.scenes.map((sc, i) => {
+    const all = sc.candidates.filter((x) => x.displayed);
+    const cands = all.filter((x) => filter === "all" || x.category === filter);
+    if (!cands.length) return null;
+
+    const rows = cands.map((x) => {
+      const b = x.best;
+      const m = matchOf(x);
+      const mList = m ? m.candidates : [];
+      const cropUrl = frameUrl(b, `?box=${b.box.join(",")}&size=360`);
+
+      const sourceCol = el("div", { class: "match-source" },
+        el("div", { class: "source-crop", style: `background-image:url(${cropUrl})` }),
+        el("h5", {}, `${x.icon} ${x.label}`),
+        el("div", { class: "meta" },
+          el("span", {}, `Category: ${x.category_name}`),
+          el("span", {}, `Confidence: ${pct(x.detection_confidence)}`),
+          el("span", {}, `Screen time: ${fmt(x.first_seen)} → ${fmt(x.last_seen)} (${fmtDur(x.screen_time)})`)
+        ),
+        m ? el("p", { class: "muted small" }, lookingFor(m)) : null,
+        el("button", { class: "seek-btn", type: "button", onclick: () => seek(x.first_seen) }, "▶ Jump to Scene")
+      );
+
+      const candCol = el("div", { class: "match-candidates" },
+        ...(mList.length
+          ? mList.map(renderProductCard)
+          : [el("p", { class: "muted small", style: "grid-column: 1 / -1; padding: 24px 0;" },
+              !m ? (state.matchRes && state.matchRes.status === "ready" ? "Not matched." : "") : (m.note || "No compatible catalogue products."))])
+      );
+
+      return el("div", { class: "match-row" }, sourceCol, candCol);
+    });
+
+    const d = el("details", { class: "cscene", style: `--c:${colorFor(i)}` },
+      el("summary", {},
+        el("span", { class: "sname" }, `SCENE ${pad2(sc.scene_id)}`),
+        el("span", { class: "tag soft" }, `${cands.length} object${cands.length === 1 ? "" : "s"}`),
+        ...sc.categories_present.filter(k => filter === "all" || k.id === filter).map((k) => el("span", { class: "tag soft" }, k.name))
+      ),
+      el("div", { class: "match-list" }, ...rows)
+    );
+    d.open = state.commOpen ? state.commOpen.has(sc.scene_id) : i < 2;
+    d.addEventListener("toggle", () => {
+      state.commOpen = state.commOpen || new Set(c.scenes.slice(0, 2).map((z) => z.scene_id));
+      d.open ? state.commOpen.add(sc.scene_id) : state.commOpen.delete(sc.scene_id);
+    });
+    return d;
+  }).filter(Boolean);
+
+  if (sceneSections.length) {
+    view.append(...sceneSections);
+  } else {
+    view.append(el("p", { class: "cempty" }, "No commercial objects match the selected filter."));
+  }
+}
+
+$("#commModeObjects").addEventListener("click", () => {
+  state.commMode = "objects";
+  renderCommercial();
+});
+$("#commModeMatching").addEventListener("click", () => {
+  state.commMode = "matching";
+  renderCommercial();
+});
+
 function renderCommercial() {
   const c = state.commercial;
   if (!c) return;
   const dev = devOn(), s = c.summary || {}, btn = $("#commRun"), st = $("#commState");
   const filter = state.commFilter || "all";
   btn.hidden = true; st.textContent = "";
+  const viewToggle = $("#commViewToggle");
+  if (viewToggle) viewToggle.hidden = true;
   $("#commFilters").replaceChildren(); $("#commScenes").replaceChildren(); $("#commDev").hidden = true;
+  if ($("#commMatchesView")) $("#commMatchesView").hidden = true;
   if (c.status === "unavailable") {
     $("#commSummary").textContent = "Commercial analysis unavailable. Scenes and Unique Shots are not affected.";
     st.textContent = dev && c.reason ? c.reason : "";
@@ -319,6 +483,12 @@ function renderCommercial() {
     btn.hidden = false; btn.textContent = "Run Commercial Analysis";
     return;
   }
+
+  if (viewToggle) viewToggle.hidden = false;
+  const mode = state.commMode || "objects";
+  $("#commModeObjects").classList.toggle("on", mode === "objects");
+  $("#commModeMatching").classList.toggle("on", mode === "matching");
+
   $("#commSummary").textContent = `${s.candidates_shown} commercial object${s.candidates_shown === 1 ? "" : "s"} in ${s.scenes} scene${s.scenes === 1 ? "" : "s"} · analysed ${s.frames_analysed} of ${s.frames_needed} unique shots`
     + (c.status === "partial" ? " · incomplete" : "");
   if (c.status === "partial") { btn.hidden = false; btn.textContent = "Analyse the rest"; st.textContent = dev && c.reason ? c.reason : ""; }
@@ -335,6 +505,26 @@ function renderCommercial() {
     onclick: () => { state.commFilter = id; renderCommercial(); } }, name, el("span", { class: "n" }, String(n)));
   $("#commFilters").replaceChildren(chip("all", "All", total),
     ...c.categories.filter((k) => counts[k.id]).map((k) => chip(k.id, k.name, counts[k.id])));
+
+  if (mode === "matching") {
+    $("#commScenes").hidden = true;
+    $("#commMatchesView").hidden = false;
+    renderProductMatching();
+    if (dev) {
+      const m = c.model || {}, t = c.timings || {};
+      $("#commDev").hidden = false;
+      $("#commDev").replaceChildren(el("h4", {}, "Commercial analysis · developer"),
+        el("table", { class: "kv" }, ...[
+          ["Model", `${m.name || "?"} (${m.license || "?"})`], ["Version / device", `${m.version || "cached results"} · ${m.device || "not loaded"}`],
+          ["Taxonomy version · detector key", `${c.taxonomy_version} · ${m.detector_key}`],
+          ["Unique shots analysed", `${s.frames_analysed} of ${s.frames_needed} (inference avoided for ${s.inference_avoided_by_unique_shots} repeated shots)`],
+          ["Catalogue matching", state.matchRes ? `${state.matchRes.status} · ${state.matchRes.count || 0} objects · ${(state.matchRes.usable || []).join(", ")}` : "…"],
+        ].map(([k, v]) => el("tr", {}, el("td", {}, k), el("td", {}, String(v))))));
+    }
+    return;
+  }
+  $("#commScenes").hidden = false;
+  $("#commMatchesView").hidden = true;
 
   const seek = (t) => { const p = $("#player"); state.previewEnd = null; p.currentTime = t + 0.01; $(".player-wrap").scrollIntoView({ behavior: "smooth", block: "center" }); };
   const frameUrl = (b, extra) => `${c.frame_base}${b.shot_id}/${Math.round(b.position * 100)}${extra || ""}`;
@@ -383,7 +573,9 @@ function renderCommercial() {
               ? shotTile({ thumb_base: tb }, o.shot_id, { cap: `${fmt(o.start)} → ${fmt(o.end)}`, badge: o.detected ? "analysed" : "",
                   title: o.detected ? "Detected in this frame" : "Same camera set-up as an analysed shot", onclick: () => seek(o.start) })
               : el("button", { class: "btn small", type: "button", onclick: () => seek(o.start) }, `${fmt(o.start)} → ${fmt(o.end)}`)))));
+        card._candData = x;
         card.after(det);
+        attachMatchesToDetail(det, x);
       });
       grid.append(card);
     });

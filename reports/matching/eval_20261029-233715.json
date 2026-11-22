@@ -1,0 +1,428 @@
+{
+ "date": "2026-10-29T23:35:53",
+ "brand": "in_your_shoe",
+ "model": "ViT-B-32/laion2b_s34b_b79k",
+ "taxonomy": "2026-10-29.2",
+ "catalogue_retrieval": {
+  "A_full_photos": {
+   "queries": 229,
+   "top1": 0.7904,
+   "top3": 0.9345,
+   "by_umbrella": {
+    "bags": {
+     "n": 4,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "headwear": {
+     "n": 11,
+     "top1": 0.636,
+     "top3": 0.909
+    },
+    "one_piece": {
+     "n": 1,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "outerwear": {
+     "n": 11,
+     "top1": 0.909,
+     "top3": 1.0
+    },
+    "sets": {
+     "n": 2,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "shorts": {
+     "n": 14,
+     "top1": 0.929,
+     "top3": 1.0
+    },
+    "skirts_dresses": {
+     "n": 4,
+     "top1": 0.5,
+     "top3": 1.0
+    },
+    "sleepwear": {
+     "n": 42,
+     "top1": 0.881,
+     "top3": 0.905
+    },
+    "socks": {
+     "n": 11,
+     "top1": 0.727,
+     "top3": 1.0
+    },
+    "tops": {
+     "n": 62,
+     "top1": 0.806,
+     "top3": 0.919
+    },
+    "trousers": {
+     "n": 32,
+     "top1": 0.531,
+     "top3": 0.938
+    },
+    "upper_layers": {
+     "n": 35,
+     "top1": 0.857,
+     "top3": 0.914
+    }
+   }
+  },
+  "B_garment": {
+   "queries": 229,
+   "top1": 0.7904,
+   "top3": 0.9301,
+   "by_umbrella": {
+    "bags": {
+     "n": 4,
+     "top1": 0.75,
+     "top3": 1.0
+    },
+    "headwear": {
+     "n": 11,
+     "top1": 0.818,
+     "top3": 1.0
+    },
+    "one_piece": {
+     "n": 1,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "outerwear": {
+     "n": 11,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "sets": {
+     "n": 2,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "shorts": {
+     "n": 14,
+     "top1": 0.786,
+     "top3": 0.857
+    },
+    "skirts_dresses": {
+     "n": 4,
+     "top1": 0.75,
+     "top3": 1.0
+    },
+    "sleepwear": {
+     "n": 42,
+     "top1": 0.857,
+     "top3": 0.905
+    },
+    "socks": {
+     "n": 11,
+     "top1": 0.364,
+     "top3": 1.0
+    },
+    "tops": {
+     "n": 62,
+     "top1": 0.806,
+     "top3": 0.952
+    },
+    "trousers": {
+     "n": 32,
+     "top1": 0.625,
+     "top3": 0.875
+    },
+    "upper_layers": {
+     "n": 35,
+     "top1": 0.886,
+     "top3": 0.914
+    }
+   }
+  },
+  "B_garment_letterbox": {
+   "queries": 229,
+   "top1": 0.6725,
+   "top3": 0.7904,
+   "by_umbrella": {
+    "bags": {
+     "n": 4,
+     "top1": 0.75,
+     "top3": 1.0
+    },
+    "headwear": {
+     "n": 11,
+     "top1": 0.364,
+     "top3": 0.455
+    },
+    "one_piece": {
+     "n": 1,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "outerwear": {
+     "n": 11,
+     "top1": 0.909,
+     "top3": 0.909
+    },
+    "sets": {
+     "n": 2,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "shorts": {
+     "n": 14,
+     "top1": 0.857,
+     "top3": 0.929
+    },
+    "skirts_dresses": {
+     "n": 4,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "sleepwear": {
+     "n": 42,
+     "top1": 0.595,
+     "top3": 0.667
+    },
+    "socks": {
+     "n": 11,
+     "top1": 0.273,
+     "top3": 0.545
+    },
+    "tops": {
+     "n": 62,
+     "top1": 0.774,
+     "top3": 0.855
+    },
+    "trousers": {
+     "n": 32,
+     "top1": 0.531,
+     "top3": 0.781
+    },
+    "upper_layers": {
+     "n": 35,
+     "top1": 0.714,
+     "top3": 0.857
+    }
+   }
+  },
+  "C_garment_ranking": {
+   "queries": 229,
+   "top1": 0.7948,
+   "top3": 0.917,
+   "by_umbrella": {
+    "bags": {
+     "n": 4,
+     "top1": 0.75,
+     "top3": 1.0
+    },
+    "headwear": {
+     "n": 11,
+     "top1": 0.727,
+     "top3": 0.909
+    },
+    "one_piece": {
+     "n": 1,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "outerwear": {
+     "n": 11,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "sets": {
+     "n": 2,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "shorts": {
+     "n": 14,
+     "top1": 0.786,
+     "top3": 0.857
+    },
+    "skirts_dresses": {
+     "n": 4,
+     "top1": 0.75,
+     "top3": 1.0
+    },
+    "sleepwear": {
+     "n": 42,
+     "top1": 0.881,
+     "top3": 0.905
+    },
+    "socks": {
+     "n": 11,
+     "top1": 0.273,
+     "top3": 1.0
+    },
+    "tops": {
+     "n": 62,
+     "top1": 0.839,
+     "top3": 0.935
+    },
+    "trousers": {
+     "n": 32,
+     "top1": 0.625,
+     "top3": 0.844
+    },
+    "upper_layers": {
+     "n": 35,
+     "top1": 0.886,
+     "top3": 0.914
+    }
+   }
+  },
+  "C_garment_ranking_top2": {
+   "queries": 229,
+   "top1": 0.8035,
+   "top3": 0.952,
+   "by_umbrella": {
+    "bags": {
+     "n": 4,
+     "top1": 0.75,
+     "top3": 1.0
+    },
+    "headwear": {
+     "n": 11,
+     "top1": 0.727,
+     "top3": 1.0
+    },
+    "one_piece": {
+     "n": 1,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "outerwear": {
+     "n": 11,
+     "top1": 0.909,
+     "top3": 1.0
+    },
+    "sets": {
+     "n": 2,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "shorts": {
+     "n": 14,
+     "top1": 0.857,
+     "top3": 0.929
+    },
+    "skirts_dresses": {
+     "n": 4,
+     "top1": 0.75,
+     "top3": 1.0
+    },
+    "sleepwear": {
+     "n": 42,
+     "top1": 0.881,
+     "top3": 0.976
+    },
+    "socks": {
+     "n": 11,
+     "top1": 0.455,
+     "top3": 0.909
+    },
+    "tops": {
+     "n": 62,
+     "top1": 0.855,
+     "top3": 0.935
+    },
+    "trousers": {
+     "n": 32,
+     "top1": 0.594,
+     "top3": 0.906
+    },
+    "upper_layers": {
+     "n": 35,
+     "top1": 0.886,
+     "top3": 0.971
+    }
+   }
+  },
+  "C_garment_letterbox_ranking": {
+   "queries": 229,
+   "top1": 0.6812,
+   "top3": 0.7991,
+   "by_umbrella": {
+    "bags": {
+     "n": 4,
+     "top1": 0.75,
+     "top3": 1.0
+    },
+    "headwear": {
+     "n": 11,
+     "top1": 0.364,
+     "top3": 0.455
+    },
+    "one_piece": {
+     "n": 1,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "outerwear": {
+     "n": 11,
+     "top1": 0.909,
+     "top3": 0.909
+    },
+    "sets": {
+     "n": 2,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "shorts": {
+     "n": 14,
+     "top1": 0.857,
+     "top3": 0.929
+    },
+    "skirts_dresses": {
+     "n": 4,
+     "top1": 1.0,
+     "top3": 1.0
+    },
+    "sleepwear": {
+     "n": 42,
+     "top1": 0.595,
+     "top3": 0.69
+    },
+    "socks": {
+     "n": 11,
+     "top1": 0.273,
+     "top3": 0.636
+    },
+    "tops": {
+     "n": 62,
+     "top1": 0.774,
+     "top3": 0.871
+    },
+    "trousers": {
+     "n": 32,
+     "top1": 0.594,
+     "top3": 0.781
+    },
+    "upper_layers": {
+     "n": 35,
+     "top1": 0.714,
+     "top3": 0.829
+    }
+   }
+  },
+  "_queries_with_colour": 146
+ },
+ "real_detections": {
+  "objects": 47,
+  "with_colour": 24,
+  "baseline": {
+   "same_or_near": 45,
+   "different": 27,
+   "unknown": 0
+  },
+  "new": {
+   "same_or_near": 47,
+   "different": 25,
+   "unknown": 0
+  },
+  "first_changed": 9,
+  "top3_overlap": 65,
+  "top3_overlap_mean": 1.38
+ }
+}

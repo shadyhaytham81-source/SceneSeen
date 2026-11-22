@@ -253,3 +253,74 @@ def test_commercial_failure_never_breaks_phase1(client, tiny_video, monkeypatch)
     assert r.status_code == 200 and r.json()["status"] == "unavailable" and "model exploded" in r.json()["reason"]
     assert c.get(f"/api/videos/{vid}/result").status_code == 200           # scenes still served
     assert c.get(f"/api/videos/{vid}/unique-shots").status_code == 200     # unique shots still served
+
+
+class _JacketEverywhere:
+    """Stands in for OWLv2: one confident jacket per frame."""
+
+    def detect(self, images, prompts):
+        return [[(prompts.index("jacket"), 0.86, [0.20, 0.15, 0.80, 0.95])] for _ in images]
+
+    def describe(self):
+        return {"name": "fake-detector", "version": "test", "device": "cpu", "load_seconds": 0.0}
+
+
+@pytest.mark.slow
+def test_product_matching_through_the_api(client, tiny_video, monkeypatch, tmp_path):
+    """Video → scenes → detected jacket → catalogue candidates of compatible types only, with the
+    actionable error when the dataset is missing. A fake encoder replaces OpenCLIP."""
+    import time
+
+    from sceneseen.commercial import analysis as commercial_analysis
+    from sceneseen.commercial import matching
+
+    from .test_product_taxonomy import CATALOGUE, FakeEncoder, make_brand
+
+    class Enc(FakeEncoder):
+        model_name, pretrained = "ViT-B-32", "laion2b_s34b_b79k"     # what the config asks for
+
+        def __init__(self, *a, **k):
+            super().__init__("laion2b_s34b_b79k")
+
+    c, app_module = client
+    vid = _analysed(c, tiny_video)
+    # 1. no dataset on this computer: a clear message, not a crash
+    monkeypatch.setenv("SCENESEEN_CATALOGUE_DIR", str(tmp_path / "no-dataset"))
+    monkeypatch.setattr(app_module, "_CATALOGUE", None)
+    r = c.get(f"/api/videos/{vid}/commercial/matches")
+    assert r.status_code == 200 and r.json()["status"] in ("missing_dataset", "unavailable")
+
+    # 2. dataset present but embeddings not generated
+    root = tmp_path / "catalogues"
+    bd = make_brand(root, CATALOGUE, slug="in_your_shoe")
+    monkeypatch.setenv("SCENESEEN_CATALOGUE_DIR", str(root))
+    monkeypatch.setattr(commercial_analysis, "get_detector", lambda *a, **k: _JacketEverywhere())
+    for f in app_module._cache(vid).path("commercial").glob("detections_*.json"):
+        f.unlink()                                      # other tests cached phones for these frames
+    job = c.post(f"/api/videos/{vid}/commercial/analyze").json()
+    for _ in range(300):
+        job = c.get(f"/api/jobs/{job['id']}").json()
+        if job["status"] in ("done", "error"):
+            break
+        time.sleep(0.1)
+    assert job["status"] == "done", job
+    r = c.get(f"/api/videos/{vid}/commercial/matches", params={"reload": True}).json()
+    assert r["status"] == "not_built" and "match-catalogue --build-index" in r["message"]
+
+    # 3. embeddings built → candidates for the detected jacket, jackets only
+    monkeypatch.setattr(matching, "ClipEncoder", Enc)
+    matching.CatalogueIndex("in_your_shoe", bd).build_or_update(encoder=Enc())
+    r = c.get(f"/api/videos/{vid}/commercial/matches", params={"reload": True}).json()
+    assert r["status"] == "ready" and r["count"] >= 1 and r["products"] == 7
+    com = c.get(f"/api/videos/{vid}/commercial").json()
+    jacket = next(x for sc in com["scenes"] for x in sc["candidates"] if x["type_id"] == "jacket" and x["displayed"])
+    m = r["matches"][jacket["key"]]
+    assert m["query"]["detection_type"] == "jacket" and len(m["candidates"]) == 3
+    assert {x["product_id"] for x in m["candidates"]} == {"p1", "p2", "p3"}            # never pants / tee / unknown
+    for x in m["candidates"]:
+        assert x["normalized_type"] == "jacket" and x["brand"] == "Test Brand" and x["price"] == 100.0
+        img = c.get("/api/catalogue/image", params={"rel": x["best_image_rel"], "brand": x["brand_slug"], "size": 64})
+        assert img.status_code == 200                                                   # the UI can show the picture
+    cached = c.get(f"/api/videos/{vid}/commercial/matches", params={"compute": False}).json()
+    assert cached["status"] == "ready" and cached["cached"] and cached["matches"] == r["matches"]
+    assert c.get(f"/api/videos/{vid}/result").status_code == 200                          # Phase 1 unaffected

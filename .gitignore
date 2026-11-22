@@ -16,20 +16,43 @@ __pycache__/
 .DS_Store
 Thumbs.db
 desktop.ini
+~$*
 .vscode/
 .idea/
 .claude/
 
-# ---------- secrets (none are used today; keep it that way)
+# ---------- secrets (Supabase keys, service-role tokens, signing keys)
 .env
 .env.*
+!.env.example
 *.pem
 *.key
+*.p8
+*.p12
+*.keystore
+*.jks
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+supabase/.temp/
+supabase/.branches/
 
 # ---------- data: raw videos, uploads, caches, exported clips (large and/or copyrighted)
 # Only data/README.md (dataset layout instructions) is tracked.
 data/*
 !data/README.md
+scraper/output/
+# product catalogue dataset + generated embeddings: never in Git, wherever they are placed
+catalogue.jsonl
+catalogue.csv
+embeddings.npz
+embeddings_manifest.json
+embeddings_meta.json
+embeddings_*_manifest.json
+embeddings_*_meta.json
+garment_boxes.json
+crop_inspection.jpg
+matches.json
 
 # ---------- generated reports
 # Evaluation tables/JSON are small and part of the project record -> tracked.
@@ -61,3 +84,35 @@ config/tuned.toml
 *.log
 *.tmp
 *.tmp.*
+
+# ---------- local planning notes (not part of the project record)
+pending/
+
+# ---------- research data with participant details (names, contacts, answers) -> team drive only
+# The guides (README, survey, consent form, interview guide) stay tracked.
+user research/*.xlsx
+user research/*.csv
+user research/responses/
+user research/recordings/
+
+# ---------- app (Expo / React Native, milestone 3)
+node_modules/
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# ---------- LaTeX build output (if the SRS is compiled locally instead of Overleaf)
+*.aux
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# ---------- milestone documents (SRS, slides, diagrams): kept on the team drive / Overleaf
+milestone */
