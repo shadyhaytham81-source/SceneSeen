@@ -41,6 +41,7 @@ def color_histogram(frame_rgb: np.ndarray, bins: tuple[int, int, int]) -> np.nda
 
     hsv = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2HSV)
     hist = cv2.calcHist([hsv], [0, 1, 2], None, list(bins), [0, 180, 0, 256, 0, 256]).ravel()
+    #check histogram values
     return (hist / max(hist.sum(), 1e-9)).astype(np.float32)
 
 
